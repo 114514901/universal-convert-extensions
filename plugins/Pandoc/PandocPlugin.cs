@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UniversalConvert.Core.Models;
 using UniversalConvert.Core.Plugins;
 using UniversalConvert.Core.Process;
 
