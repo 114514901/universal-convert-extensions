@@ -1,0 +1,15 @@
+{
+  "plugins": [
+    {
+      "id": "com.universalconvert.pandoc",
+      "name": "Pandoc",
+      "description": "文档格式转换（md/docx/html/tex/epub 等），基于 Pandoc",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://pandoc.org",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pandoc-1.0.0/Pandoc-1.0.0.zip"
+    }
+  ]
+}

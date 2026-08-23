@@ -1,0 +1,69 @@
+name: build-plugin
+
+on:
+  push:
+    tags: [ '*-*' ]  # 约定 tag 格式：{插件目录名}-{版本}，如 Pandoc-1.0.0
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Parse tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $idx = $tag.IndexOf('-')
+          if ($idx -le 0) { Write-Error "无效 tag 格式：$tag" }
+          echo "PLUGIN=$($tag.Substring(0, $idx))" >> $env:GITHUB_ENV
+          echo "VERSION=$($tag.Substring($idx + 1))" >> $env:GITHUB_ENV
+
+      - name: Download Core SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force lib | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/114514901/universal-convert/releases/latest/download/UniversalConvert.Core.SDK.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath lib -Force
+          Get-ChildItem lib
+
+      - name: Build plugin
+        run: msbuild "plugins\${{ env.PLUGIN }}\${{ env.PLUGIN }}Plugin.csproj" /p:Configuration=Release /restore /m
+
+      - name: Download Pandoc
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jgm/pandoc/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "未找到 pandoc windows 资产" }
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$env:RUNNER_TEMP\pandoc.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\pandoc.zip" -DestinationPath "$env:RUNNER_TEMP\pandoc"
+          $pandoc = Get-ChildItem -Path "$env:RUNNER_TEMP\pandoc" -Recurse -Filter "pandoc.exe" | Select-Object -First 1
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+          Copy-Item $pandoc.FullName package\tools\ -Force
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item "plugins\$env:PLUGIN\manifest.json" package\ -Force
+          Copy-Item "plugins\$env:PLUGIN\bin\Release\net48\UniversalConvert.Plugin.$env:PLUGIN.dll" package\ -Force
+          Compress-Archive -Path "package\*" -DestinationPath "$env:PLUGIN-$env:VERSION.zip"
+          Get-ChildItem *.zip
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "${{ env.PLUGIN }}-${{ env.VERSION }}.zip"
+          generate_release_notes: true
