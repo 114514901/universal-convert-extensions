@@ -97,7 +97,7 @@ namespace UniversalConvert.Plugin.MIDI
             var wav = Path.Combine(Path.GetTempPath(), "uc-midi-" + Guid.NewGuid().ToString("N") + ".wav");
             try
             {
-                var args = BuildRenderArguments(soundFont, inputPath, wav, 44100);
+                var args = BuildRenderArguments(soundFont, inputPath, wav, "44100");
                 var result = await Task.Run(() => ProcessRunner.Run(fluidsynth, args, cancellationToken), cancellationToken).ConfigureAwait(false);
                 if (result.ExitCode != 0 || !File.Exists(wav))
                 {
