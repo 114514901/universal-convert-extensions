@@ -69,14 +69,14 @@
       "id": "com.universalconvert.pysubs2",
       "name": "Pysubs2",
       "description": "字幕格式互转（srt/ass/ssa/vtt/sami/ttml 等），基于 pysubs2",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "UniversalConvert",
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://github.com/tkarabela/pysubs2",
       "size": 9024355,
       "sha256": "befa2dda3d5a582d36e928adf85aa2269363064405beaaa57d6f18ca3ec956e1",
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pysubs2-1.0.0/Pysubs2-1.0.0.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pysubs2-1.0.1/Pysubs2-1.0.1.zip"
     },
     {
       "id": "com.universalconvert.potrace",

@@ -24,7 +24,7 @@ namespace UniversalConvert.Plugin.Pysubs2
         public string Id => "com.universalconvert.pysubs2";
         public string Name => "Pysubs2";
         public string Description => "字幕格式互转（srt/ass/ssa/vtt/sami/ttml 等），基于 pysubs2";
-        public string Version => "1.0.0";
+        public string Version => "1.0.1";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
@@ -41,7 +41,8 @@ namespace UniversalConvert.Plugin.Pysubs2
                 { ".sami", "sami" },
                 { ".smi", "sami" },
                 { ".ttml", "ttml" },
-                { ".json", "json" }
+                { ".json", "json" },
+                { ".lrc", "lrc" }
             };
 
         /// <summary>输出扩展名 → pysubs2 格式标识符。</summary>
@@ -55,7 +56,8 @@ namespace UniversalConvert.Plugin.Pysubs2
                 { ".vtt", "vtt" },
                 { ".sami", "sami" },
                 { ".ttml", "ttml" },
-                { ".json", "json" }
+                { ".json", "json" },
+                { ".lrc", "lrc" }
             };
 
         public void Initialize(IPluginContext context)
@@ -229,6 +231,7 @@ namespace UniversalConvert.Plugin.Pysubs2
                 case ".smi": return "SAMI";
                 case ".ttml": return "TTML";
                 case ".json": return "JSON";
+                case ".lrc": return "LRC 歌词";
                 default: return ext.TrimStart('.').ToUpperInvariant();
             }
         }
