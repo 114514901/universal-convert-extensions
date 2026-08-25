@@ -226,10 +226,21 @@ jobs:
           New-Item -ItemType Directory -Force package\tools\whisper-base | Out-Null
           Copy-Item dist\whisper.exe package\tools\ -Force
 
-          # Whisper base 模型（CTranslate2 格式，约 140MB）
+          # Whisper base 模型（CTranslate2 格式，约 140MB）；HF 偶发 404/抖动，失败重试 3 次
           $baseModel = "https://huggingface.co/Systran/faster-whisper-base/resolve/main"
           foreach ($f in @("model.bin", "config.json", "tokenizer.json", "vocabulary.txt", "preprocessor_config.json")) {
-            Invoke-WebRequest -Uri "$baseModel/$f" -OutFile "package\tools\whisper-base\$f"
+            $ok = $false
+            for ($try = 1; $try -le 3; $try++) {
+              try {
+                Invoke-WebRequest -Uri "$baseModel/$f" -OutFile "package\tools\whisper-base\$f" -Headers @{ "User-Agent" = "Mozilla/5.0" }
+                $ok = $true
+                break
+              } catch {
+                Write-Host "模型文件 $f 第 $try 次下载失败: $($_.Exception.Message)"
+                Start-Sleep -Seconds 3
+              }
+            }
+            if (-not $ok) { throw "模型文件 $f 下载失败" }
           }
           Get-ChildItem package\tools, package\tools\whisper-base | Select-Object Name, @{N="MB";E={[math]::Round($_.Length/1MB,1)}}
 
