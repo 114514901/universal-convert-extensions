@@ -1,0 +1,10 @@
+{
+  "id": "com.universalconvert.webpdf",
+  "name": "WebPdf",
+  "description": "网页转 PDF（本地 HTML → PDF），复用系统 Edge 无头模式渲染，无需随包分发",
+  "version": "1.0.0",
+  "author": "UniversalConvert",
+  "minAppVersion": "1.7.3",
+  "maxAppVersion": null,
+  "homepage": "https://www.microsoft.com/edge"
+}
