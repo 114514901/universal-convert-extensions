@@ -15,12 +15,12 @@
       "id": "com.universalconvert.markitdown",
       "name": "MarkItDown",
       "description": "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown（工具随包分发）",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": "UniversalConvert",
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://github.com/microsoft/markitdown",
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.1.0/MarkItDown-1.1.0.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.1.1/MarkItDown-1.1.1.zip"
     },
     {
       "id": "com.universalconvert.midi",

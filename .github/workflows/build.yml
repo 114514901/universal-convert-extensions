@@ -69,15 +69,15 @@ jobs:
           python -m pip install --quiet --upgrade pip
           python -m pip install --quiet "markitdown[all]"
           python -m pip install --quiet pyinstaller
-          # 入口：packages/markitdown/src/markitdown/__main__.py（python -m markitdown）
-          $entry = python -c "import markitdown, os; print(os.path.join(os.path.dirname(markitdown.__file__), '__main__.py'))"
+          # 入口：仓库里的 markitdown_cli.py（不能用包内 __main__.py——
+          # 其相对导入在 PyInstaller 顶层脚本模式下会崩溃）
           python -m PyInstaller --onefile --name markitdown --distpath dist `
             --collect-all markitdown `
             --collect-data python_pptx `
             --collect-all rapidocr_onnxruntime `
             --collect-binaries onnxruntime `
             --collect-all magika `
-            $entry
+            plugins\MarkItDown\markitdown_cli.py
           New-Item -ItemType Directory -Force package\tools | Out-Null
           Copy-Item dist\markitdown.exe package\tools\ -Force
           Get-Item package\tools\markitdown.exe | Select-Object Name, Length
