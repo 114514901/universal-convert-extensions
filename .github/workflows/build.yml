@@ -40,6 +40,7 @@ jobs:
         run: msbuild "plugins\${{ env.PLUGIN }}\${{ env.PLUGIN }}Plugin.csproj" /p:Configuration=Release /restore /m
 
       - name: Download Pandoc
+        if: env.PLUGIN == 'Pandoc'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"

@@ -10,6 +10,17 @@
       "maxAppVersion": null,
       "homepage": "https://pandoc.org",
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pandoc-1.1.0/Pandoc-1.1.0.zip"
+    },
+    {
+      "id": "com.universalconvert.markitdown",
+      "name": "MarkItDown",
+      "description": "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR 等转 Markdown（需 pip install 'markitdown[all]'）",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://github.com/microsoft/markitdown",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.0.0/MarkItDown-1.0.0.zip"
     }
   ]
 }
