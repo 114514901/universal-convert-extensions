@@ -25,7 +25,7 @@ namespace UniversalConvert.Plugin.MIDI
         public string Id => "com.universalconvert.midi";
         public string Name => "MIDI";
         public string Description => "MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a），FluidSynth + GeneralUser GS 音色库随包分发";
-        public string Version => "1.0.1";
+        public string Version => "1.0.2";
 
         /// <summary>需要 IPreviewProvider 与加载时 MinAppVersion 校验（主程序 2.0.2-dev.7 起）。</summary>
         public string MinAppVersion => "2.0.2-dev.7";
@@ -80,14 +80,14 @@ namespace UniversalConvert.Plugin.MIDI
                                     Key = "gain",
                                     Label = "音量增益",
                                     Type = OptionType.Enum,
-                                    DefaultValue = "0.5",
+                                    DefaultValue = "1.0",
                                     Choices = new List<OptionChoice>
                                     {
                                         new OptionChoice { Value = "0.2", Label = "0.2（轻柔，FluidSynth 原默认）" },
-                                        new OptionChoice { Value = "0.5", Label = "0.5（默认，推荐）" },
-                                        new OptionChoice { Value = "1.0", Label = "1.0（响亮）" },
-                                        new OptionChoice { Value = "1.5", Label = "1.5（增强）" },
-                                        new OptionChoice { Value = "2.0", Label = "2.0（最大，可能削波）" }
+                                        new OptionChoice { Value = "0.5", Label = "0.5（较低）" },
+                                        new OptionChoice { Value = "1.0", Label = "1.0（默认，推荐）" },
+                                        new OptionChoice { Value = "1.5", Label = "1.5（较高）" },
+                                        new OptionChoice { Value = "2.0", Label = "2.0（最高，可能削波）" }
                                     }
                                 }
                             }
@@ -112,8 +112,8 @@ namespace UniversalConvert.Plugin.MIDI
             var wav = Path.Combine(Path.GetTempPath(), "uc-midi-" + Guid.NewGuid().ToString("N") + ".wav");
             try
             {
-                // 预览固定用推荐增益 0.5（FluidSynth 原默认 0.2 偏小）
-                var args = BuildRenderArguments(soundFont, inputPath, wav, "44100", "0.5");
+                // 预览固定用推荐增益 1.0
+                var args = BuildRenderArguments(soundFont, inputPath, wav, "44100", "1.0");
                 var result = await Task.Run(() => ProcessRunner.Run(fluidsynth, args, cancellationToken), cancellationToken).ConfigureAwait(false);
                 if (result.ExitCode != 0 || !File.Exists(wav))
                 {
@@ -155,7 +155,7 @@ namespace UniversalConvert.Plugin.MIDI
 
             // 1. FluidSynth 渲染成临时 wav
             var sampleRate = GetOption(request, "sampleRate", "44100");
-            var gain = GetOption(request, "gain", "0.5");
+            var gain = GetOption(request, "gain", "1.0");
             var tempWav = Path.Combine(Path.GetTempPath(), "uc-midi-" + Guid.NewGuid().ToString("N") + ".wav");
             try
             {
