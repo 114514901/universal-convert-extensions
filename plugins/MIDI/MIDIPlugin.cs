@@ -25,7 +25,7 @@ namespace UniversalConvert.Plugin.MIDI
         public string Id => "com.universalconvert.midi";
         public string Name => "MIDI";
         public string Description => "MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a），FluidSynth + GeneralUser GS 音色库随包分发";
-        public string Version => "1.0.0";
+        public string Version => "1.0.1";
 
         /// <summary>需要 IPreviewProvider 与加载时 MinAppVersion 校验（主程序 2.0.2-dev.7 起）。</summary>
         public string MinAppVersion => "2.0.2-dev.7";
@@ -74,6 +74,21 @@ namespace UniversalConvert.Plugin.MIDI
                                         new OptionChoice { Value = "44100", Label = "44100 Hz（默认）" },
                                         new OptionChoice { Value = "48000", Label = "48000 Hz" }
                                     }
+                                },
+                                new OptionDefinition
+                                {
+                                    Key = "gain",
+                                    Label = "音量增益",
+                                    Type = OptionType.Enum,
+                                    DefaultValue = "0.5",
+                                    Choices = new List<OptionChoice>
+                                    {
+                                        new OptionChoice { Value = "0.2", Label = "0.2（轻柔，FluidSynth 原默认）" },
+                                        new OptionChoice { Value = "0.5", Label = "0.5（默认，推荐）" },
+                                        new OptionChoice { Value = "1.0", Label = "1.0（响亮）" },
+                                        new OptionChoice { Value = "1.5", Label = "1.5（增强）" },
+                                        new OptionChoice { Value = "2.0", Label = "2.0（最大，可能削波）" }
+                                    }
                                 }
                             }
                         })
@@ -97,7 +112,8 @@ namespace UniversalConvert.Plugin.MIDI
             var wav = Path.Combine(Path.GetTempPath(), "uc-midi-" + Guid.NewGuid().ToString("N") + ".wav");
             try
             {
-                var args = BuildRenderArguments(soundFont, inputPath, wav, "44100");
+                // 预览固定用推荐增益 0.5（FluidSynth 原默认 0.2 偏小）
+                var args = BuildRenderArguments(soundFont, inputPath, wav, "44100", "0.5");
                 var result = await Task.Run(() => ProcessRunner.Run(fluidsynth, args, cancellationToken), cancellationToken).ConfigureAwait(false);
                 if (result.ExitCode != 0 || !File.Exists(wav))
                 {
@@ -139,12 +155,13 @@ namespace UniversalConvert.Plugin.MIDI
 
             // 1. FluidSynth 渲染成临时 wav
             var sampleRate = GetOption(request, "sampleRate", "44100");
+            var gain = GetOption(request, "gain", "0.5");
             var tempWav = Path.Combine(Path.GetTempPath(), "uc-midi-" + Guid.NewGuid().ToString("N") + ".wav");
             try
             {
                 progress?.Report(new ConversionProgress(ConversionStage.Running, -1, "正在渲染 MIDI..."));
                 var render = await Task.Run(
-                    () => ProcessRunner.Run(fluidsynth, BuildRenderArguments(soundFont, request.InputPath, tempWav, sampleRate), cancellationToken),
+                    () => ProcessRunner.Run(fluidsynth, BuildRenderArguments(soundFont, request.InputPath, tempWav, sampleRate, gain), cancellationToken),
                     cancellationToken).ConfigureAwait(false);
 
                 if (cancellationToken.IsCancellationRequested)
@@ -277,11 +294,12 @@ namespace UniversalConvert.Plugin.MIDI
 
         // ---------- 命令行 ----------
 
-        private static string BuildRenderArguments(string soundFont, string inputPath, string wavPath, string sampleRate)
+        private static string BuildRenderArguments(string soundFont, string inputPath, string wavPath, string sampleRate, string gain)
         {
-            // -F 渲染到文件；-i 非交互；-r 采样率
+            // -F 渲染到文件；-i 非交互；-r 采样率；-g 音量增益（FluidSynth 原默认 0.2 偏小，文件渲染推荐 0.5）
             return "-F " + ProcessRunner.Quote(wavPath)
                 + " -i -r " + sampleRate
+                + " -g " + gain
                 + " " + ProcessRunner.Quote(soundFont)
                 + " " + ProcessRunner.Quote(inputPath);
         }
