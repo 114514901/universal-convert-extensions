@@ -10,7 +10,8 @@
       "maxAppVersion": null,
       "homepage": "https://pandoc.org",
       "size": 41564099,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pandoc-1.1.0/Pandoc-1.1.0.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pandoc-1.1.0/Pandoc-1.1.0.zip",
+      "sha256": "b16e408cb480768b33d3bf67faf7b18c40cb930bb13dbc45c171ab42cc7a9e3d"
     },
     {
       "id": "com.universalconvert.markitdown",
@@ -22,7 +23,8 @@
       "maxAppVersion": null,
       "homepage": "https://github.com/microsoft/markitdown",
       "size": 107350053,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.1.3/MarkItDown-1.1.3.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.1.3/MarkItDown-1.1.3.zip",
+      "sha256": "c0cca283927b3266bf0d307edd86d4f74568f4038f8c260e1609ab52bb8baea7"
     },
     {
       "id": "com.universalconvert.midi",
@@ -34,7 +36,8 @@
       "maxAppVersion": null,
       "homepage": "https://www.fluidsynth.org/",
       "size": 31144953,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.2/MIDI-1.0.2.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.2/MIDI-1.0.2.zip",
+      "sha256": "616f6c974892fb93f70a5c79e2d94d78cd6b576f3bef10ce559a23c21a25b997"
     },
     {
       "id": "com.universalconvert.imagemagick",
@@ -46,7 +49,8 @@
       "maxAppVersion": null,
       "homepage": "https://imagemagick.org",
       "size": 104345597,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/ImageMagick-1.0.0/ImageMagick-1.0.0.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/ImageMagick-1.0.0/ImageMagick-1.0.0.zip",
+      "sha256": "51df1644367b3079f41d0f08019132c6847270bd0c1e0a8280f850b9232447ba"
     },
     {
       "id": "com.universalconvert.libreoffice",
@@ -58,7 +62,8 @@
       "maxAppVersion": null,
       "homepage": "https://www.libreoffice.org/",
       "size": 526911352,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.0/LibreOffice-1.0.0.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.0/LibreOffice-1.0.0.zip",
+      "sha256": "f884b637d53740325e361411ca4bf4ec3496cccc16c4bc281bb6ecf343850e68"
     }
   ]
 }
