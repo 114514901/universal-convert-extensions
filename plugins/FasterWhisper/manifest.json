@@ -1,0 +1,10 @@
+{
+  "id": "com.universalconvert.fasterwhisper",
+  "name": "FasterWhisper",
+  "description": "语音转文字/字幕（音频 → txt/srt/vtt），Whisper base 模型随包分发",
+  "version": "1.0.0",
+  "author": "UniversalConvert",
+  "minAppVersion": "1.7.3",
+  "maxAppVersion": null,
+  "homepage": "https://github.com/SYSTRAN/faster-whisper"
+}
