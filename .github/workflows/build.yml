@@ -183,7 +183,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           choco install mingw -y --no-progress
 
-          Invoke-WebRequest -Uri "https://downloads.sourceforge.net/project/potrace/1.16/potrace-1.16.tar.gz" -OutFile "$env:RUNNER_TEMP\potrace.tar.gz"
+          Invoke-WebRequest -Uri "https://deb.debian.org/debian/pool/main/p/potrace/potrace_1.16.orig.tar.gz" -OutFile "$env:RUNNER_TEMP\potrace.tar.gz"
           # 校验是真实 gzip（sourceforge 的 /download 页可能返回 HTML）
           $head = [System.IO.File]::ReadAllBytes("$env:RUNNER_TEMP\potrace.tar.gz")[0..1]
           if ($head[0] -ne 0x1F -or $head[1] -ne 0x8B) { throw "potrace 下载不是有效的 gzip 文件" }
