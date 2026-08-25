@@ -21,3 +21,4 @@ UniversalConvert 的扩展插件仓库。每个插件一个目录，包含插件
 - **Pandoc** — 文档格式转换（md/docx/html/tex/epub 等），工具随包分发。
 - **MarkItDown** — Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/电子书等转 Markdown。Python 运行时与依赖由 CI 用 PyInstaller 打成单文件 `tools\markitdown.exe` 随包分发，无需用户安装 Python。
 - **MIDI** — MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a）。FluidSynth + GeneralUser GS 音色库随包分发；实现 `IPreviewProvider`，主程序可直接预览 .mid/.midi。需要主程序 ≥ 2.0.2-dev.7。
+- **ImageMagick** — 图像格式转换与处理（ICO/CUR/SVG/PSD/TIFF/EXR/HDR/相机 RAW 等 200+ 格式），支持质量与缩放参数。官方 portable 包（magick.exe + 依赖）随包分发；与内置 FFmpeg 重叠的格式（png/jpg/webp 等）由应用弹窗让用户选择用哪个。

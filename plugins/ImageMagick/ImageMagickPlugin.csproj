@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <RootNamespace>UniversalConvert.Plugin.ImageMagick</RootNamespace>
+    <AssemblyName>UniversalConvert.Plugin.ImageMagick</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core SDK 由 CI 从主仓库 Release 下载到 lib\ -->
+    <Reference Include="UniversalConvert.Core">
+      <HintPath>..\..\lib\UniversalConvert.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

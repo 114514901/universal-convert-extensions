@@ -1,0 +1,10 @@
+{
+  "id": "com.universalconvert.imagemagick",
+  "name": "ImageMagick",
+  "description": "图像格式转换与处理（ICO/SVG/PSD/TIFF/相机 RAW 等 200+ 格式），工具随包分发",
+  "version": "1.0.0",
+  "author": "UniversalConvert",
+  "minAppVersion": "1.7.3",
+  "maxAppVersion": null,
+  "homepage": "https://imagemagick.org"
+}

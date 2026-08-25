@@ -32,6 +32,17 @@
       "maxAppVersion": null,
       "homepage": "https://www.fluidsynth.org/",
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.2/MIDI-1.0.2.zip"
+    },
+    {
+      "id": "com.universalconvert.imagemagick",
+      "name": "ImageMagick",
+      "description": "图像格式转换与处理（ICO/SVG/PSD/TIFF/相机 RAW 等 200+ 格式），工具随包分发",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://imagemagick.org",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/ImageMagick-1.0.0/ImageMagick-1.0.0.zip"
     }
   ]
 }
