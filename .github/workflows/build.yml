@@ -228,7 +228,7 @@ jobs:
 
           # Whisper base 模型（CTranslate2 格式，约 140MB）；HF 偶发 404/抖动，失败重试 3 次
           $baseModel = "https://huggingface.co/Systran/faster-whisper-base/resolve/main"
-          foreach ($f in @("model.bin", "config.json", "tokenizer.json", "vocabulary.txt", "preprocessor_config.json")) {
+          foreach ($f in @("model.bin", "config.json", "tokenizer.json", "vocabulary.txt")) {
             $ok = $false
             for ($try = 1; $try -le 3; $try++) {
               try {
