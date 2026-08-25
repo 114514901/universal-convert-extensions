@@ -32,7 +32,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force lib | Out-Null
-          Invoke-WebRequest -Uri "https://github.com/114514901/universal-convert/releases/latest/download/UniversalConvert.Core.SDK.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
+          # 取最新发布（含 prerelease，如 v2.0.2-dev.x）里的 Core SDK：
+          # /releases/latest 只指向最新正式版，可能不含新 API（如 IPreviewProvider）
+          $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/114514901/universal-convert/releases?per_page=20"
+          $rel = $releases | Where-Object { -not $_.draft } | Sort-Object { [datetime]$_.published_at } -Descending | Select-Object -First 1
+          if (-not $rel) { throw "未找到主仓库发布" }
+          $asset = $rel.assets | Where-Object { $_.name -eq "UniversalConvert.Core.SDK.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "发布 $($rel.tag_name) 缺少 UniversalConvert.Core.SDK.zip" }
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$env:RUNNER_TEMP\core.zip"
           Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath lib -Force
           Get-ChildItem lib
 
@@ -74,6 +81,27 @@ jobs:
           New-Item -ItemType Directory -Force package\tools | Out-Null
           Copy-Item dist\markitdown.exe package\tools\ -Force
           Get-Item package\tools\markitdown.exe | Select-Object Name, Length
+
+      # MIDI：下载 FluidSynth（win10-x64，含运行 DLL）与 GeneralUser GS 音色库随包分发
+      - name: Download FluidSynth & SoundFont
+        if: env.PLUGIN == 'MIDI'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/FluidSynth/fluidsynth/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -like "*win10-x64*" -and $_.name -like "*.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "未找到 fluidsynth win10-x64 资产" }
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$env:RUNNER_TEMP\fluidsynth.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\fluidsynth.zip" -DestinationPath "$env:RUNNER_TEMP\fluidsynth"
+          $fsBin = Get-ChildItem -Path "$env:RUNNER_TEMP\fluidsynth" -Recurse -Filter "fluidsynth.exe" | Select-Object -First 1
+          if (-not $fsBin) { throw "fluidsynth.exe 未找到" }
+          Copy-Item $fsBin.FullName package\tools\ -Force
+          Get-ChildItem $fsBin.DirectoryName -Filter "*.dll" | Copy-Item -Destination package\tools\ -Force
+
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ROCKNIX/generaluser-gs/main/GeneralUser%20GS%20v1.471.sf2" -OutFile "package\tools\GeneralUser GS v1.471.sf2"
+          Get-ChildItem package\tools | Select-Object Name, Length
 
       - name: Package
         shell: pwsh
