@@ -9,6 +9,7 @@
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://pandoc.org",
+      "size": 41564099,
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pandoc-1.1.0/Pandoc-1.1.0.zip"
     },
     {
@@ -20,6 +21,7 @@
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://github.com/microsoft/markitdown",
+      "size": 107350053,
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MarkItDown-1.1.3/MarkItDown-1.1.3.zip"
     },
     {
@@ -31,6 +33,7 @@
       "minAppVersion": "2.0.2-dev.7",
       "maxAppVersion": null,
       "homepage": "https://www.fluidsynth.org/",
+      "size": 31144953,
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.2/MIDI-1.0.2.zip"
     },
     {
@@ -42,7 +45,20 @@
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://imagemagick.org",
+      "size": 104345597,
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/ImageMagick-1.0.0/ImageMagick-1.0.0.zip"
+    },
+    {
+      "id": "com.universalconvert.libreoffice",
+      "name": "LibreOffice",
+      "description": "Office 文档渲染转换（doc/docx/xls/xlsx/ppt/pptx → PDF 等），LibreOffice 完整版随包分发",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://www.libreoffice.org/",
+      "size": 526911352,
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.0/LibreOffice-1.0.0.zip"
     }
   ]
 }
