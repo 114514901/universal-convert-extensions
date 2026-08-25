@@ -122,6 +122,38 @@ jobs:
           Copy-Item "$($magick.DirectoryName)\*" package\tools\ -Recurse -Force
           Get-ChildItem package\tools | Select-Object Name, Length
 
+      # LibreOffice：官方 CDN 取最新稳定版 MSI，msiexec /a 解包，整个目录（program\share\ 等）随包分发（约 400MB）
+      - name: Download LibreOffice
+        if: env.PLUGIN == 'LibreOffice'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+
+          # 解析最新稳定版本号（目录列表形如 26.2.5/）
+          $html = (Invoke-WebRequest -Uri "https://download.documentfoundation.org/libreoffice/stable/").Content
+          $ver = [regex]::Matches($html, 'href="(\d+\.\d+\.\d+)/"') |
+              ForEach-Object { $_.Groups[1].Value } |
+              Sort-Object { [version]$_ } -Descending | Select-Object -First 1
+          if (-not $ver) { throw "未解析到 LibreOffice 版本" }
+          Write-Host "LibreOffice 版本: $ver"
+
+          $msi = "https://download.documentfoundation.org/libreoffice/stable/$ver/win/x86_64/LibreOffice_${ver}_Win_x86-64.msi"
+          Invoke-WebRequest -Uri $msi -OutFile "$env:RUNNER_TEMP\libreoffice.msi"
+
+          # msiexec /a 管理式解包（免安装，展开全部文件）
+          $extract = "$env:RUNNER_TEMP\lo-extract"
+          New-Item -ItemType Directory -Force $extract | Out-Null
+          $p = Start-Process msiexec -ArgumentList "/a `"$env:RUNNER_TEMP\libreoffice.msi`" /qn TARGETDIR=`"$extract`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "msiexec 解包失败: $($p.ExitCode)" }
+
+          $soffice = Get-ChildItem -Path $extract -Recurse -Filter "soffice.exe" | Select-Object -First 1
+          if (-not $soffice) { throw "soffice.exe 未找到" }
+          # 解包根（program\ share\ 等的父目录）整体拷进 tools\
+          $loRoot = $soffice.Directory.Parent.FullName
+          Copy-Item "$loRoot\*" package\tools\ -Recurse -Force
+          Get-ChildItem package\tools | Select-Object Name, Length
+
       - name: Package
         shell: pwsh
         run: |
