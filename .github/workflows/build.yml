@@ -183,7 +183,10 @@ jobs:
           $ErrorActionPreference = "Stop"
           choco install mingw -y --no-progress
 
-          Invoke-WebRequest -Uri "https://sourceforge.net/projects/potrace/files/1.16/potrace-1.16.tar.gz/download" -OutFile "$env:RUNNER_TEMP\potrace.tar.gz"
+          Invoke-WebRequest -Uri "https://downloads.sourceforge.net/project/potrace/1.16/potrace-1.16.tar.gz" -OutFile "$env:RUNNER_TEMP\potrace.tar.gz"
+          # 校验是真实 gzip（sourceforge 的 /download 页可能返回 HTML）
+          $head = [System.IO.File]::ReadAllBytes("$env:RUNNER_TEMP\potrace.tar.gz")[0..1]
+          if ($head[0] -ne 0x1F -or $head[1] -ne 0x8B) { throw "potrace 下载不是有效的 gzip 文件" }
           tar -xzf "$env:RUNNER_TEMP\potrace.tar.gz" -C "$env:RUNNER_TEMP"
 
           $src = "$env:RUNNER_TEMP\potrace-1.16\src"
@@ -202,6 +205,33 @@ jobs:
 
           New-Item -ItemType Directory -Force package\tools | Out-Null
           Copy-Item "$env:RUNNER_TEMP\potrace.exe" package\tools\ -Force
+
+      # FasterWhisper：PyInstaller 打包 faster-whisper + CTranslate2，Whisper base 模型随包分发
+      - name: Build FasterWhisper tool
+        if: env.PLUGIN == 'FasterWhisper'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet faster-whisper
+          python -m pip install --quiet pyinstaller
+
+          python -m PyInstaller --onefile --name whisper --distpath dist `
+            --collect-all faster_whisper `
+            --collect-all ctranslate2 `
+            --collect-all tokenizers `
+            --collect-all huggingface_hub `
+            plugins\FasterWhisper\whisper_cli.py
+
+          New-Item -ItemType Directory -Force package\tools\whisper-base | Out-Null
+          Copy-Item dist\whisper.exe package\tools\ -Force
+
+          # Whisper base 模型（CTranslate2 格式，约 140MB）
+          $baseModel = "https://huggingface.co/Systran/faster-whisper-base/resolve/main"
+          foreach ($f in @("model.bin", "config.json", "tokenizer.json", "vocabulary.txt", "preprocessor_config.json")) {
+            Invoke-WebRequest -Uri "$baseModel/$f" -OutFile "package\tools\whisper-base\$f"
+          }
+          Get-ChildItem package\tools, package\tools\whisper-base | Select-Object Name, @{N="MB";E={[math]::Round($_.Length/1MB,1)}}
 
       - name: Package
         shell: pwsh
