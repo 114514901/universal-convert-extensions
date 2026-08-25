@@ -14,8 +14,8 @@ namespace UniversalConvert.Plugin.MarkItDown
     {
         public override string Id => "com.universalconvert.markitdown";
         public override string Name => "MarkItDown";
-        public override string Description => "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown（Python 运行时随包分发）";
-        public override string Version => "1.1.2";
+        public override string Description => "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/电子书等转 Markdown（Python 运行时随包分发）";
+        public override string Version => "1.1.3";
         protected override string ToolName => "markitdown";
 
         private static readonly string[] Inputs =
@@ -23,7 +23,7 @@ namespace UniversalConvert.Plugin.MarkItDown
             ".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm",
             ".csv", ".json", ".xml", ".txt",
             ".jpg", ".jpeg", ".png",
-            ".mp3", ".wav", ".epub"
+            ".epub"
         };
 
         public override IList<ConversionCapability> GetCapabilities()
@@ -61,8 +61,6 @@ namespace UniversalConvert.Plugin.MarkItDown
                 case ".jpg":
                 case ".jpeg": return "JPG 图片";
                 case ".png": return "PNG 图片";
-                case ".mp3": return "MP3 音频";
-                case ".wav": return "WAV 音频";
                 case ".epub": return "EPUB 电子书";
                 default: return ext.TrimStart('.').ToUpperInvariant() + " 文件";
             }

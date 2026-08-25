@@ -1,8 +1,8 @@
 {
   "id": "com.universalconvert.markitdown",
   "name": "MarkItDown",
-  "description": "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown（工具随包分发）",
-  "version": "1.1.2",
+  "description": "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/电子书等转 Markdown（工具随包分发）",
+  "version": "1.1.3",
   "author": "UniversalConvert",
   "minAppVersion": "1.7.3",
   "maxAppVersion": null,
