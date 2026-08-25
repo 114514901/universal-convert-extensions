@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +36,7 @@ jobs:
           New-Item -ItemType Directory -Force lib | Out-Null
           # 取最新发布（含 prerelease，如 v2.0.2-dev.x）里的 Core SDK：
           # /releases/latest 只指向最新正式版，可能不含新 API（如 IPreviewProvider）
-          $apiHeaders = @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $apiHeaders = @{ Authorization = "Bearer $env:GH_TOKEN" }
           $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/114514901/universal-convert/releases?per_page=20" -Headers $apiHeaders
           $rel = $releases | Where-Object { -not $_.draft } | Sort-Object { [datetime]$_.published_at } -Descending | Select-Object -First 1
           if (-not $rel) { throw "未找到主仓库发布" }
@@ -52,7 +54,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $apiHeaders = @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $apiHeaders = @{ Authorization = "Bearer $env:GH_TOKEN" }
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jgm/pandoc/releases/latest" -Headers $apiHeaders
           $asset = $release.assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
           if (-not $asset) { throw "未找到 pandoc windows 资产" }
@@ -92,7 +94,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force package\tools | Out-Null
 
-          $apiHeaders = @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $apiHeaders = @{ Authorization = "Bearer $env:GH_TOKEN" }
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/FluidSynth/fluidsynth/releases/latest" -Headers $apiHeaders
           $asset = $release.assets | Where-Object { $_.name -like "*win10-x64*" -and $_.name -like "*.zip" } | Select-Object -First 1
           if (-not $asset) { throw "未找到 fluidsynth win10-x64 资产" }
@@ -114,7 +116,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force package\tools | Out-Null
 
-          $apiHeaders = @{ Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $apiHeaders = @{ Authorization = "Bearer $env:GH_TOKEN" }
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/ImageMagick/ImageMagick/releases/latest" -Headers $apiHeaders
           $asset = $release.assets | Where-Object { $_.name -like "*portable-Q16-HDRI-x64.7z" } | Select-Object -First 1
           if (-not $asset) { throw "未找到 ImageMagick portable 资产" }
