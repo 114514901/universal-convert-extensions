@@ -1,0 +1,10 @@
+{
+  "id": "com.universalconvert.potrace",
+  "name": "Potrace",
+  "description": "位图转矢量图（BMP/PBM → SVG/PDF/EPS/PS），工具由 CI 编译随包分发",
+  "version": "1.0.0",
+  "author": "UniversalConvert",
+  "minAppVersion": "1.7.3",
+  "maxAppVersion": null,
+  "homepage": "https://potrace.sourceforge.net/"
+}

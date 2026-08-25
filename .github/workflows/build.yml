@@ -169,6 +169,34 @@ jobs:
           Copy-Item dist\pysubs2.exe package\tools\ -Force
           Get-Item package\tools\pysubs2.exe | Select-Object Name, Length
 
+      # Potrace：官方无 Windows 预编译包（sourceforge 仅源码），用 MinGW gcc 编译源码产出 potrace.exe
+      - name: Build Potrace tool
+        if: env.PLUGIN == 'Potrace'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          choco install mingw -y --no-progress
+
+          Invoke-WebRequest -Uri "https://sourceforge.net/projects/potrace/files/1.16/potrace-1.16.tar.gz/download" -OutFile "$env:RUNNER_TEMP\potrace.tar.gz"
+          tar -xzf "$env:RUNNER_TEMP\potrace.tar.gz" -C "$env:RUNNER_TEMP"
+
+          $src = "$env:RUNNER_TEMP\potrace-1.16\src"
+          gcc -O2 -I"$src\include" -include stdint.h -DPOTRACE=\"potrace\" -DVERSION=\"1.16" `
+            -DHAVE_UNISTD_H -DHAVE_STRING_H -DHAVE_MATH_H `
+            -o "$env:RUNNER_TEMP\potrace.exe" `
+            "$src\main.c" "$src\potracelib.c" "$src\bitmap_io.c" "$src\bbox.c" `
+            "$src\curve.c" "$src\decompose.c" "$src\trace.c" "$src\trans.c" `
+            "$src\backend_svg.c" "$src\backend_pdf.c" "$src\backend_eps.c" "$src\backend_dxf.c" `
+            "$src\backend_geojson.c" "$src\backend_pgm.c" "$src\backend_xfig.c" `
+            "$src\progress_bar.c" "$src\flate.c" "$src\lzw.c" "$src\render.c" "$src\greymap.c" `
+            "$src\getopt.c" "$src\getopt1.c" -lm
+          if (-not (Test-Path "$env:RUNNER_TEMP\potrace.exe")) { throw "potrace.exe 编译失败" }
+
+          & "$env:RUNNER_TEMP\potrace.exe" --version | Select-Object -First 1
+
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\potrace.exe" package\tools\ -Force
+
       - name: Package
         shell: pwsh
         run: |
