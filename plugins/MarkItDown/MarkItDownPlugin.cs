@@ -15,7 +15,7 @@ namespace UniversalConvert.Plugin.MarkItDown
         public override string Id => "com.universalconvert.markitdown";
         public override string Name => "MarkItDown";
         public override string Description => "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown（Python 运行时随包分发）";
-        public override string Version => "1.1.0";
+        public override string Version => "1.1.2";
         protected override string ToolName => "markitdown";
 
         private static readonly string[] Inputs =
