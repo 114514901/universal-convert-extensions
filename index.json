@@ -64,6 +64,58 @@
       "size": 526911352,
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.0/LibreOffice-1.0.0.zip",
       "sha256": "f884b637d53740325e361411ca4bf4ec3496cccc16c4bc281bb6ecf343850e68"
+    },
+    {
+      "id": "com.universalconvert.pysubs2",
+      "name": "Pysubs2",
+      "description": "字幕格式互转（srt/ass/ssa/vtt/sami/ttml 等），基于 pysubs2",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://github.com/tkarabela/pysubs2",
+      "size": 9024355,
+      "sha256": "befa2dda3d5a582d36e928adf85aa2269363064405beaaa57d6f18ca3ec956e1",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Pysubs2-1.0.0/Pysubs2-1.0.0.zip"
+    },
+    {
+      "id": "com.universalconvert.potrace",
+      "name": "Potrace",
+      "description": "位图转矢量图（BMP/PBM → SVG/PDF/EPS/PS），工具由 CI 编译随包分发",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://potrace.sourceforge.net/",
+      "size": 94307,
+      "sha256": "8db09a5619a6ee38d9aad3ac70bdb9932523b3db029cc497e1ae21a5faeb8ca3",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/Potrace-1.0.0/Potrace-1.0.0.zip"
+    },
+    {
+      "id": "com.universalconvert.webpdf",
+      "name": "WebPdf",
+      "description": "网页转 PDF（本地 HTML → PDF），复用系统 Edge 无头模式渲染，无需随包分发",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://www.microsoft.com/edge",
+      "size": 5195,
+      "sha256": "84f40ab0a385d8c7d3702f5f5606dad6df76646983b8519f4782c05352b1bd12",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/WebPdf-1.0.0/WebPdf-1.0.0.zip"
+    },
+    {
+      "id": "com.universalconvert.fasterwhisper",
+      "name": "FasterWhisper",
+      "description": "语音转文字/字幕（音频 → txt/srt/vtt），Whisper base 模型随包分发",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "1.7.3",
+      "maxAppVersion": null,
+      "homepage": "https://github.com/SYSTRAN/faster-whisper",
+      "size": 226960470,
+      "sha256": "f4a776d4b6af5d274b19fd9215252e79fdffd091cd2b3bd17b6d58a7d9351cb8",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/FasterWhisper-1.0.0/FasterWhisper-1.0.0.zip"
     }
   ]
 }
