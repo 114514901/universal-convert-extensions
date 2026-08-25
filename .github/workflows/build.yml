@@ -190,7 +190,7 @@ jobs:
           tar -xzf "$env:RUNNER_TEMP\potrace.tar.gz" -C "$env:RUNNER_TEMP"
 
           $src = "$env:RUNNER_TEMP\potrace-1.16\src"
-          gcc -O2 -I"$src\include" -include stdint.h -DPOTRACE=\"potrace\" -DVERSION=\"1.16" `
+          gcc -O2 -I"$src\include" -include stdint.h '-DPOTRACE="potrace"' '-DVERSION="1.16"' `
             -DHAVE_UNISTD_H -DHAVE_STRING_H -DHAVE_MATH_H `
             -o "$env:RUNNER_TEMP\potrace.exe" `
             "$src\main.c" "$src\potracelib.c" "$src\bitmap_io.c" "$src\bbox.c" `
