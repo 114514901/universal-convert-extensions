@@ -8,15 +8,14 @@ namespace UniversalConvert.Plugin.MarkItDown
 {
     /// <summary>
     /// Microsoft MarkItDown 文档转 Markdown 插件（外部 Python 工具）。
-    /// 需要用户先安装：pip install 'markitdown[all]'（Python 3.10+）。
-    /// 工具定位：插件包 tools\markitdown.exe 或系统 PATH（pip 安装后 Scripts 目录里有 markitdown.exe）。
+    /// 工具随包分发（PyInstaller 打包的单文件 tools\markitdown.exe），也可回退到系统 PATH。
     /// </summary>
     public sealed class MarkItDownPlugin : ExternalToolConverterBase
     {
         public override string Id => "com.universalconvert.markitdown";
         public override string Name => "MarkItDown";
-        public override string Description => "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR 等转 Markdown（需 pip install 'markitdown[all]'）";
-        public override string Version => "1.0.0";
+        public override string Description => "Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown（Python 运行时随包分发）";
+        public override string Version => "1.1.0";
         protected override string ToolName => "markitdown";
 
         private static readonly string[] Inputs =

@@ -53,6 +53,28 @@ jobs:
           New-Item -ItemType Directory -Force package\tools | Out-Null
           Copy-Item $pandoc.FullName package\tools\ -Force
 
+      # MarkItDown：用 PyInstaller 把 Python 运行时 + markitdown[all] 打成单文件 exe 随包分发
+      - name: Build MarkItDown tool
+        if: env.PLUGIN == 'MarkItDown'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet "markitdown[all]"
+          python -m pip install --quiet pyinstaller
+          # 入口：packages/markitdown/src/markitdown/__main__.py（python -m markitdown）
+          $entry = python -c "import markitdown, os; print(os.path.join(os.path.dirname(markitdown.__file__), '__main__.py'))"
+          python -m PyInstaller --onefile --name markitdown --distpath dist `
+            --collect-all markitdown `
+            --collect-data python_pptx `
+            --collect-all rapidocr_onnxruntime `
+            --collect-binaries onnxruntime `
+            --collect-all magika `
+            $entry
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+          Copy-Item dist\markitdown.exe package\tools\ -Force
+          Get-Item package\tools\markitdown.exe | Select-Object Name, Length
+
       - name: Package
         shell: pwsh
         run: |

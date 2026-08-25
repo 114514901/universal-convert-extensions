@@ -19,4 +19,4 @@ UniversalConvert 的扩展插件仓库。每个插件一个目录，包含插件
 ## 已有插件
 
 - **Pandoc** — 文档格式转换（md/docx/html/tex/epub 等），工具随包分发。
-- **MarkItDown** — Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR 等转 Markdown。工具不随包分发，需用户先 `pip install 'markitdown[all]'`（Python 3.10+），插件会从系统 PATH 定位 `markitdown.exe`。
+- **MarkItDown** — Microsoft MarkItDown：PDF/Word/Excel/PPT/HTML/图片 OCR/音频等转 Markdown。Python 运行时与依赖由 CI 用 PyInstaller 打成单文件 `tools\markitdown.exe` 随包分发，无需用户安装 Python。
