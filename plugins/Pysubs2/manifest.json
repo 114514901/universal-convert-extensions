@@ -1,0 +1,10 @@
+{
+  "id": "com.universalconvert.pysubs2",
+  "name": "Pysubs2",
+  "description": "字幕格式互转（srt/ass/ssa/vtt/sami/ttml 等），基于 pysubs2",
+  "version": "1.0.0",
+  "author": "UniversalConvert",
+  "minAppVersion": "1.7.3",
+  "maxAppVersion": null,
+  "homepage": "https://github.com/tkarabela/pysubs2"
+}

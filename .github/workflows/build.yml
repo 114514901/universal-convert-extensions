@@ -154,6 +154,21 @@ jobs:
           Copy-Item "$loRoot\*" package\tools\ -Recurse -Force
           Get-ChildItem package\tools | Select-Object Name, Length
 
+      # Pysubs2：纯 Python 库，PyInstaller 打成单文件 exe 随包分发
+      - name: Build Pysubs2 tool
+        if: env.PLUGIN == 'Pysubs2'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet pysubs2
+          python -m pip install --quiet pyinstaller
+          python -m PyInstaller --onefile --name pysubs2 --distpath dist `
+            plugins\Pysubs2\pysubs2_cli.py
+          New-Item -ItemType Directory -Force package\tools | Out-Null
+          Copy-Item dist\pysubs2.exe package\tools\ -Force
+          Get-Item package\tools\pysubs2.exe | Select-Object Name, Length
+
       - name: Package
         shell: pwsh
         run: |
