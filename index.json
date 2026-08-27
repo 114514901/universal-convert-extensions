@@ -56,14 +56,12 @@
       "id": "com.universalconvert.libreoffice",
       "name": "LibreOffice",
       "description": "Office 文档渲染转换（doc/docx/xls/xlsx/ppt/pptx → PDF 等），LibreOffice 完整版随包分发",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "UniversalConvert",
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://www.libreoffice.org/",
-      "size": 526911352,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.0/LibreOffice-1.0.0.zip",
-      "sha256": "f884b637d53740325e361411ca4bf4ec3496cccc16c4bc281bb6ecf343850e68"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.1/LibreOffice-1.0.1.zip"
     },
     {
       "id": "com.universalconvert.pysubs2",

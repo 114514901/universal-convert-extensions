@@ -27,14 +27,14 @@ namespace UniversalConvert.Plugin.LibreOffice
         public string Id => "com.universalconvert.libreoffice";
         public string Name => "LibreOffice";
         public string Description => "Office 文档渲染转换（doc/docx/xls/xlsx/ppt/pptx → PDF 等），LibreOffice 完整版随包分发（约 400MB）";
-        public string Version => "1.0.0";
+        public string Version => "1.0.1";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
 
         /// <summary>文档类输入：输出 PDF/文档格式。</summary>
         private static readonly string[] DocInputs =
-            { ".doc", ".docx", ".odt", ".rtf", ".html", ".htm", ".txt", ".ott" };
+            { ".doc", ".docx", ".odt", ".rtf", ".txt", ".ott" };
 
         /// <summary>表格类输入：输出 PDF/表格格式。</summary>
         private static readonly string[] SheetInputs =

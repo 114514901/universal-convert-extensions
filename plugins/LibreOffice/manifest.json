@@ -2,7 +2,7 @@
   "id": "com.universalconvert.libreoffice",
   "name": "LibreOffice",
   "description": "Office 文档渲染转换（doc/docx/xls/xlsx/ppt/pptx → PDF 等），LibreOffice 完整版随包分发（约 400MB）",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "UniversalConvert",
   "minAppVersion": "1.7.3",
   "maxAppVersion": null,
