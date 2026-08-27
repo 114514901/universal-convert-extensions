@@ -136,16 +136,36 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force package\tools | Out-Null
 
-          # 解析最新稳定版本号（目录列表形如 26.2.5/）
-          $html = (Invoke-WebRequest -Uri "https://download.documentfoundation.org/libreoffice/stable/").Content
-          $ver = [regex]::Matches($html, 'href="(\d+\.\d+\.\d+)/"') |
-              ForEach-Object { $_.Groups[1].Value } |
-              Sort-Object { [version]$_ } -Descending | Select-Object -First 1
+          # 解析最新稳定版本号（目录列表形如 26.2.5/）；官方 CDN 偶发抖动，失败重试 3 次
+          $ver = $null
+          for ($try = 1; $try -le 3; $try++) {
+            try {
+              $html = (Invoke-WebRequest -Uri "https://download.documentfoundation.org/libreoffice/stable/").Content
+              $ver = [regex]::Matches($html, 'href="(\d+\.\d+\.\d+)/"') |
+                  ForEach-Object { $_.Groups[1].Value } |
+                  Sort-Object { [version]$_ } -Descending | Select-Object -First 1
+              if ($ver) { break }
+            } catch {
+              Write-Host "版本页第 $try 次获取失败: $($_.Exception.Message)"
+              Start-Sleep -Seconds 5
+            }
+          }
           if (-not $ver) { throw "未解析到 LibreOffice 版本" }
           Write-Host "LibreOffice 版本: $ver"
 
           $msi = "https://download.documentfoundation.org/libreoffice/stable/$ver/win/x86_64/LibreOffice_${ver}_Win_x86-64.msi"
-          Invoke-WebRequest -Uri $msi -OutFile "$env:RUNNER_TEMP\libreoffice.msi"
+          $dlOk = $false
+          for ($try = 1; $try -le 3; $try++) {
+            try {
+              Invoke-WebRequest -Uri $msi -OutFile "$env:RUNNER_TEMP\libreoffice.msi"
+              $dlOk = $true
+              break
+            } catch {
+              Write-Host "MSI 第 $try 次下载失败: $($_.Exception.Message)"
+              Start-Sleep -Seconds 5
+            }
+          }
+          if (-not $dlOk) { throw "LibreOffice MSI 下载失败" }
 
           # msiexec /a 管理式解包（免安装，展开全部文件）
           $extract = "$env:RUNNER_TEMP\lo-extract"
