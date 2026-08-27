@@ -61,7 +61,9 @@
       "minAppVersion": "1.7.3",
       "maxAppVersion": null,
       "homepage": "https://www.libreoffice.org/",
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.1/LibreOffice-1.0.1.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/LibreOffice-1.0.1/LibreOffice-1.0.1.zip",
+      "size": 528594499,
+      "sha256": "3298c31b746e43685be4e872bedb8fcd0819956ce7d8056a0bd99807c94c1bbe"
     },
     {
       "id": "com.universalconvert.pysubs2",
