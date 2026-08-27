@@ -140,7 +140,7 @@ jobs:
           $ver = $null
           for ($try = 1; $try -le 3; $try++) {
             try {
-              $html = (Invoke-WebRequest -Uri "https://download.documentfoundation.org/libreoffice/stable/").Content
+              $html = (Invoke-WebRequest -Uri "https://ftp.osuosl.org/pub/tdf/libreoffice/stable/").Content
               $ver = [regex]::Matches($html, 'href="(\d+\.\d+\.\d+)/"') |
                   ForEach-Object { $_.Groups[1].Value } |
                   Sort-Object { [version]$_ } -Descending | Select-Object -First 1
@@ -153,7 +153,7 @@ jobs:
           if (-not $ver) { throw "未解析到 LibreOffice 版本" }
           Write-Host "LibreOffice 版本: $ver"
 
-          $msi = "https://download.documentfoundation.org/libreoffice/stable/$ver/win/x86_64/LibreOffice_${ver}_Win_x86-64.msi"
+          $msi = "https://ftp.osuosl.org/pub/tdf/libreoffice/stable/$ver/win/x86_64/LibreOffice_${ver}_Win_x86-64.msi"
           $dlOk = $false
           for ($try = 1; $try -le 3; $try++) {
             try {
