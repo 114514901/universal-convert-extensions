@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -142,7 +143,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 }
 
                 // 音频（无视频轨）时显示内嵌封面
-                if (_mp != null && _mp.TracksCount(TrackType.Video) <= 0)
+                if (_mp != null && (_mp.VideoTrackCount ?? 0) <= 0)
                 {
                     try
                     {
