@@ -287,7 +287,12 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force package | Out-Null
           Copy-Item "plugins\$env:PLUGIN\manifest.json" package\ -Force
-          Copy-Item "plugins\$env:PLUGIN\bin\Release\net48\UniversalConvert.Plugin.$env:PLUGIN.dll" package\ -Force
+          # 带第三方托管依赖的插件（如 VlcVideo 的 LibVLCSharp）拷贝全部输出 DLL
+          if ($env:PLUGIN -eq 'VlcVideo') {
+            Copy-Item "plugins\$env:PLUGIN\bin\Release\net48\*" package\ -Force
+          } else {
+            Copy-Item "plugins\$env:PLUGIN\bin\Release\net48\UniversalConvert.Plugin.$env:PLUGIN.dll" package\ -Force
+          }
           Compress-Archive -Path "package\*" -DestinationPath "$env:PLUGIN-$env:VERSION.zip"
           Get-ChildItem *.zip
 
