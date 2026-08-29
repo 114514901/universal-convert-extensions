@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -25,6 +27,8 @@ namespace UniversalConvert.Plugin.VlcVideo
         private LibVLC _libVlc;
         private MediaPlayer _mp;
         private Media _media;
+        private float _staticBitrateKbps = -1;
+        private string _staticInfoSuffix = "";
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private bool _playing;
         private bool _wasPlayingBeforeSeek;
@@ -266,6 +270,12 @@ namespace UniversalConvert.Plugin.VlcVideo
                     ProgressSlider.Value = seconds;
                 }
                 UpdateTimeText(e.Time / 1000.0);
+                // 动态码率实时刷新（kHz/声道保持静态）
+                if (InfoText != null)
+                {
+                    var br = CurrentBitrateKbps();
+                    InfoText.Text = (br > 0 ? string.Format("{0:0} kbps", br) : "—") + _staticInfoSuffix;
+                }
             });
         }
 
@@ -342,7 +352,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                     var parts = new System.Collections.Generic.List<string>();
                     long br;
                     long.TryParse(bitrate, out br);
-                    parts.Add(br > 0 ? string.Format("{0} kbps", br / 1000) : "—");
+                    _staticBitrateKbps = br > 0 ? br / 1000f : -1;
                     long sr;
                     long.TryParse(sampleRate, out sr);
                     parts.Add(sr > 0 ? string.Format("{0:0.#} kHz", sr / 1000.0) : "—");
@@ -353,7 +363,8 @@ namespace UniversalConvert.Plugin.VlcVideo
                     else if (ch > 2) parts.Add(string.Format("{0}声道", ch));
                     else parts.Add("—");
 
-                    var text1 = string.Join(" · ", parts);
+                    _staticInfoSuffix = parts.Count > 0 ? " · " + string.Join(" · ", parts) : "";
+                    var text1 = (CurrentBitrateKbps() > 0 ? string.Format("{0:0} kbps", CurrentBitrateKbps()) : "—") + _staticInfoSuffix;
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try { if (InfoText != null) InfoText.Text = text1; } catch { }
@@ -392,6 +403,47 @@ namespace UniversalConvert.Plugin.VlcVideo
             PlayPauseButton.Content = "播放";
             ProgressSlider.Value = 0;
             TimeText.Text = string.Empty;
+        }
+
+        // ---- libvlc 实时统计（LibVLCSharp 3.x 未封装，直接 P/Invoke） ----
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MediaStats
+        {
+            public int ReadBytes;
+            public float InputBitrate;
+            public int DemuxReadBytes;
+            public float DemuxBitrate;
+            public int DemuxCorrupted;
+            public int DemuxDiscontinuity;
+            public int DecodedVideo;
+            public int DecodedAudio;
+            public int DisplayedPictures;
+            public int LostPictures;
+            public int LostABuffers;
+            public int PlayedABuffers;
+        }
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int libvlc_media_get_stats(IntPtr media, out MediaStats stats);
+
+        /// <summary>实时码率（kbps）：优先 libvlc 统计的 demux bitrate（播放中动态变化），
+        /// 不可用回退 ffprobe 静态音频码率。</summary>
+        private float CurrentBitrateKbps()
+        {
+            try
+            {
+                if (_media != null)
+                {
+                    MediaStats st;
+                    if (libvlc_media_get_stats(_media.NativeReference, out st) != 0 && st.DemuxBitrate > 0)
+                    {
+                        return st.DemuxBitrate;
+                    }
+                }
+            }
+            catch { }
+            return _staticBitrateKbps;
         }
 
         private static string Quote(string path)
