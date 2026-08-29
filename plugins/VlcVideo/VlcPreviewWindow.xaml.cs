@@ -27,6 +27,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private Media _media;
         private float _staticBitrateKbps = -1;
         private string _staticInfoSuffix = "";
+        private BitrateTimeline _timeline;
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private readonly DispatcherTimer _infoTimer = new DispatcherTimer();
         private bool _playing;
@@ -229,6 +230,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 }
             });
             LoadStreamInfoAsync();
+            LoadBitrateTimelineAsync();
         }
 
         private void OnPaused(object sender, EventArgs e)
@@ -425,15 +427,127 @@ namespace UniversalConvert.Plugin.VlcVideo
             TimeText.Text = string.Empty;
         }
 
-        /// <summary>当前显示的码率（kbps）：ffprobe 音频流平均码率（libvlc 3.x 统计对本地
-        /// 文件不产生有效 demux bitrate，实测 0/1 kbps，已弃用 stats）。</summary>
+        /// <summary>当前显示的码率（kbps）：ffprobe 包级时间线动态（1s 滑动窗口，真实 VBR），
+        /// 不可用回退平均码率。</summary>
         private float CurrentBitrateKbps()
         {
+            try
+            {
+                if (_timeline != null && _mp != null)
+                {
+                    var br = _timeline.GetBitrateKbps(_mp.Time / 1000.0);
+                    if (br > 0) return br;
+                }
+            }
+            catch { }
             return _staticBitrateKbps;
         }
 
                 private DateTime _lastDebugLog;
         /// <summary>debug 日志（节流：至少间隔 3 秒，避免刷屏）。</summary>
+        /// <summary>加载 ffprobe 包级时间线（移植自内置 AudioPlayerWindow：packet pts_time/size
+        /// → 累计字节曲线 → 按播放时间查 1s 滑动瞬时码率）。</summary>
+        private async void LoadBitrateTimelineAsync()
+        {
+            var plugin = _pluginRef?.Target as VlcVideoPlugin;
+            var ffprobe = plugin?.Context?.FindTool("ffprobe");
+            if (string.IsNullOrEmpty(ffprobe)) return;
+
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = ffprobe,
+                    Arguments = "-v error -select_streams a:0 -show_entries packet=pts_time,size -of json " + Quote(_filePath),
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true
+                };
+                var text = await System.Threading.Tasks.Task.Run(() =>
+                {
+                    using (var proc = System.Diagnostics.Process.Start(psi))
+                    {
+                        if (proc == null) return string.Empty;
+                        var t = proc.StandardOutput.ReadToEnd();
+                        proc.WaitForExit(10000);
+                        return t;
+                    }
+                });
+
+                var tl = BitrateTimeline.Parse(text);
+                LogDebug("码率时间线包数: " + (tl == null ? 0 : tl.Count));
+                if (tl != null && tl.Count > 0)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => { try { _timeline = tl; } catch { } }));
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>ffprobe 包级码率时间线（复制内置实现：pts_time/size 累计，1 秒滑动窗口估算瞬时码率）。</summary>
+        private sealed class BitrateTimeline
+        {
+            private readonly List<double> _times = new List<double>();
+            private readonly List<long> _cumBytes = new List<long>();
+
+            public int Count => _times.Count;
+            public bool IsValid => _times.Count > 0;
+
+            public void Add(double time, long cumulativeBytes)
+            {
+                _times.Add(time);
+                _cumBytes.Add(cumulativeBytes);
+            }
+
+            public int GetBitrateKbps(double seconds)
+            {
+                if (!IsValid) return 0;
+                int end = FindIndex(seconds);
+                if (end < 0) return 0;
+                int start = FindIndex(seconds - 1.0);
+                if (start < 0) start = 0;
+                double dt = _times[end] - _times[start];
+                long db = _cumBytes[end] - _cumBytes[start];
+                if (dt <= 0) return 0;
+                return (int)(db * 8.0 / dt / 1000.0);
+            }
+
+            private int FindIndex(double seconds)
+            {
+                int lo = 0, hi = _times.Count - 1, ans = -1;
+                while (lo <= hi)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (_times[mid] <= seconds) { ans = mid; lo = mid + 1; }
+                    else hi = mid - 1;
+                }
+                return ans;
+            }
+
+            /// <summary>从 ffprobe JSON 输出解析（packet=pts_time,size）。</summary>
+            public static BitrateTimeline Parse(string json)
+            {
+                if (string.IsNullOrEmpty(json)) return null;
+                var timeline = new BitrateTimeline();
+                var regex = new System.Text.RegularExpressions.Regex(
+                    ""pts_time":\s*([0-9.]+)[^}]*?"size":\s*(\d+)",
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+                long cum = 0;
+                foreach (System.Text.RegularExpressions.Match m in regex.Matches(json))
+                {
+                    double time;
+                    long size;
+                    if (!double.TryParse(m.Groups[1].Value,
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out time)) continue;
+                    if (!long.TryParse(m.Groups[2].Value, out size)) continue;
+                    cum += size;
+                    timeline.Add(time, cum);
+                }
+                return timeline;
+            }
+        }
+
         private void LogDebug(string message)
         {
             var now = DateTime.Now;
