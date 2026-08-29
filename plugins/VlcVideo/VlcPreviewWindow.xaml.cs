@@ -20,6 +20,7 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         private readonly string _filePath;
         private VideoView VideoHost;
+        internal static WeakReference _pluginRef;
         private Image _coverImage;
         private LibVLC _libVlc;
         private MediaPlayer _mp;
@@ -124,12 +125,28 @@ namespace UniversalConvert.Plugin.VlcVideo
         // 元数据/封面解析完成（VLC 内部线程，UI 更新经 OnUi）
         private void OnMediaParsedChanged(object sender, MediaParsedChangedEventArgs e)
         {
+            var status = e.ParsedStatus;
             OnUi(() =>
             {
-                if (_media == null || e.ParsedStatus != MediaParsedStatus.Done && e.ParsedStatus != MediaParsedStatus.Skipped)
+                var plugin = _pluginRef?.Target as VlcVideoPlugin;
+                if (plugin == null) return;
+                if (_media == null)
                 {
+                    plugin.Log("VLC 封面解析：media 为空");
                     return;
                 }
+                plugin.Log(string.Format("VLC 封面解析：status={0}", status));
+                if (status != MediaParsedStatus.Done && status != MediaParsedStatus.Skipped)
+                {
+                    plugin.Log("VLC 封面解析：跳过（非 Done/Skipped）");
+                    return;
+                }
+                plugin.Log("VLC 封面解析：title=" + (_media.Meta(MetadataType.Title) ?? "(空)") +
+                    ", artist=" + (_media.Meta(MetadataType.Artist) ?? "(空)"));
+                var artwork = _media.Meta(MetadataType.ArtworkURL);
+                plugin.Log("VLC 封面解析：artworkURL=" + (artwork ?? "(空)") +
+                    ", 存在=" + (!string.IsNullOrEmpty(artwork) && File.Exists(artwork)));
+                plugin.Log(string.Format("VLC 封面解析：videoTrackCount={0}", _mp == null ? -1 : _mp.VideoTrackCount));
                 var title = _media.Meta(MetadataType.Title);
                 var artist = _media.Meta(MetadataType.Artist);
                 if (!string.IsNullOrEmpty(artist) || !string.IsNullOrEmpty(title))
