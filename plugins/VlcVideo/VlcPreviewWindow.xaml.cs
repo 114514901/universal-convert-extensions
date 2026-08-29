@@ -3,8 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -427,63 +425,14 @@ namespace UniversalConvert.Plugin.VlcVideo
             TimeText.Text = string.Empty;
         }
 
-        // ---- libvlc 实时统计（LibVLCSharp 3.x 未封装，直接 P/Invoke） ----
-
-        // 与 vlc 3.0.21 include/vlc/libvlc_media.h 的 libvlc_media_stats_t 逐字段一致（共 15 项）：
-        // 字段不足/顺序错位会导致 libvlc 越界写 → 2s 原生崩溃
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MediaStats
-        {
-            public int ReadBytes;
-            public float InputBitrate;
-            public int DemuxReadBytes;
-            public float DemuxBitrate;
-            public int DemuxCorrupted;
-            public int DemuxDiscontinuity;
-            public int DecodedVideo;
-            public int DecodedAudio;
-            public int DisplayedPictures;
-            public int LostPictures;
-            public int PlayedABuffers;
-            public int LostABuffers;
-            public int SentPackets;
-            public int SentBytes;
-            public float SendBitrate;
-        }
-
-        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int libvlc_media_get_stats(IntPtr media, out MediaStats stats);
-
-        /// <summary>实时码率（kbps）：优先 libvlc 统计的 demux bitrate（播放中动态变化），
-        /// 不可用回退 ffprobe 静态音频码率。</summary>
+        /// <summary>当前显示的码率（kbps）：ffprobe 音频流平均码率（libvlc 3.x 统计对本地
+        /// 文件不产生有效 demux bitrate，实测 0/1 kbps，已弃用 stats）。</summary>
         private float CurrentBitrateKbps()
         {
-            try
-            {
-                if (_media != null)
-                {
-                    MediaStats st;
-                    var ok = libvlc_media_get_stats(_media.NativeReference, out st);
-                    if (ok != 0 && st.DemuxBitrate > 0)
-                    {
-                        return st.DemuxBitrate;
-                    }
-                    LogDebug(string.Format("stats: ok={0} demux={1:0.#} readBytes={2}", ok, st.DemuxBitrate, st.ReadBytes));
-                }
-                else
-                {
-                    LogDebug("stats: media 为空");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogDebug("stats P/Invoke 异常: " + ex);
-            }
-            LogDebug(string.Format("stats 回落静态码率: {0:0.#} kbps", _staticBitrateKbps));
             return _staticBitrateKbps;
         }
 
-        private DateTime _lastDebugLog;
+                private DateTime _lastDebugLog;
         /// <summary>debug 日志（节流：至少间隔 3 秒，避免刷屏）。</summary>
         private void LogDebug(string message)
         {
