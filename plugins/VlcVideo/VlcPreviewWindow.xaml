@@ -29,7 +29,8 @@
             <Button x:Name="PlayPauseButton" Content="播放" Padding="14,4"
                     IsEnabled="False" Click="OnPlayPause" Margin="0,0,8,0"/>
             <Button Content="停止" Padding="14,4" Click="OnStop" Margin="0,0,16,0"/>
-            <TextBlock x:Name="TimeText" VerticalAlignment="Center" Foreground="#666666" Margin="0,0,16,0"/>
+            <TextBlock x:Name="TimeText" VerticalAlignment="Center" Foreground="#666666" Margin="0,0,8,0"/>
+            <TextBlock x:Name="InfoText" VerticalAlignment="Center" Foreground="#888888" FontSize="12" Margin="0,0,16,0"/>
             <TextBlock Text="音量" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <Slider x:Name="VolumeSlider" Width="120" Minimum="0" Maximum="1" Value="1"
                     VerticalAlignment="Center" ValueChanged="OnVolumeChanged"/>

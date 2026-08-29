@@ -17,7 +17,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         public string Id => "com.universalconvert.vlcvideo";
         public string Name => "VLC 播放器";
         public string Description => "媒体预览增强：基于 VLC 的全格式播放（视频 mkv/webm/hevc/rmvb 及全部音频），拖拽进度条原生帧预览";
-        public string Version => "1.1.0";
+        public string Version => "1.1.1";
         public string MinAppVersion => "2.4.0-dev.9";
         public string MaxAppVersion => null;
         public string Author => "UniversalConvert";
