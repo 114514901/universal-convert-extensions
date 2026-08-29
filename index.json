@@ -126,7 +126,9 @@
       "minAppVersion": "2.4.0-dev.9",
       "maxAppVersion": null,
       "homepage": "https://www.videolan.org/vlc/",
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/VlcVideo-1.2.1/VlcVideo-1.2.1.zip"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/VlcVideo-1.2.1/VlcVideo-1.2.1.zip",
+      "size": 49280714,
+      "sha256": "f27c7de27ef1771ec4df376a3de330cf9bc61c61c9649d6f892f3235373dfbda"
     }
   ]
 }
