@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -18,8 +20,10 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         private readonly string _filePath;
         private VideoView VideoHost;
+        private Image _coverImage;
         private LibVLC _libVlc;
         private MediaPlayer _mp;
+        private Media _media;
         private readonly DispatcherTimer _timer = new DispatcherTimer();
         private bool _playing;
         private bool _wasPlayingBeforeSeek;
@@ -49,6 +53,15 @@ namespace UniversalConvert.Plugin.VlcVideo
                 VideoHost.PreviewMouseLeftButtonDown += OnVideoMouseLeftDown;
                 HostGrid.Children.Add(VideoHost);
 
+                // 封面层（音频预览显示内嵌封面；置于 VideoView 之上）
+                _coverImage = new Image
+                {
+                    Stretch = System.Windows.Media.Stretch.Uniform,
+                    Visibility = Visibility.Collapsed,
+                    RenderOptions = { BitmapScalingMode = System.Windows.Media.BitmapScalingMode.HighQuality }
+                };
+                HostGrid.Children.Add(_coverImage);
+
                 _libVlc = new LibVLC();
                 _mp = new MediaPlayer(_libVlc);
                 VideoHost.MediaPlayer = _mp;
@@ -62,10 +75,11 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _mp.TimeChanged += OnTimeChanged;
                 _mp.LengthChanged += OnLengthChanged;
 
-                using (var media = new Media(_libVlc, new Uri(_filePath)))
-                {
-                    _mp.Play(media);
-                }
+                // 持有 Media 以便异步解析元数据/封面（libvlc 自动导出内嵌封面到临时文件）
+                _media = new Media(_libVlc, new Uri(_filePath));
+                _media.ParsedChanged += OnMediaParsedChanged;
+                _mp.Play(_media);
+                _media.Parse(MediaParseOptions.ParseLocal);
                 _playing = true;
                 PlayPauseButton.Content = "暂停";
                 _timer.Start();
@@ -105,6 +119,49 @@ namespace UniversalConvert.Plugin.VlcVideo
                 }));
             }
             catch { }
+        }
+
+        // 元数据/封面解析完成（VLC 内部线程，UI 更新经 OnUi）
+        private void OnMediaParsedChanged(object sender, MediaParsedChangedEventArgs e)
+        {
+            OnUi(() =>
+            {
+                if (_media == null || e.ParsedStatus != MediaParsedStatus.Done && e.ParsedStatus != MediaParsedStatus.Skipped)
+                {
+                    return;
+                }
+                var title = _media.Meta(MetadataType.Title);
+                var artist = _media.Meta(MetadataType.Artist);
+                if (!string.IsNullOrEmpty(artist) || !string.IsNullOrEmpty(title))
+                {
+                    var shown = string.Join(" - ", new[] { artist, title }.Where(x => !string.IsNullOrEmpty(x)));
+                    if (!string.IsNullOrEmpty(shown))
+                    {
+                        TitleText.Text = shown;
+                    }
+                }
+
+                // 音频（无视频轨）时显示内嵌封面
+                if (_mp != null && _mp.VideoTracksCount <= 0)
+                {
+                    try
+                    {
+                        var art = _media.Meta(MetadataType.ArtworkURL);
+                        if (!string.IsNullOrEmpty(art) && File.Exists(art))
+                        {
+                            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                            bmp.BeginInit();
+                            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                            bmp.UriSource = new Uri(art);
+                            bmp.EndInit();
+                            bmp.Freeze();
+                            _coverImage.Source = bmp;
+                            _coverImage.Visibility = Visibility.Visible;
+                        }
+                    }
+                    catch { }
+                }
+            });
         }
 
         private void OnPlaying(object sender, EventArgs e)
@@ -345,6 +402,11 @@ namespace UniversalConvert.Plugin.VlcVideo
                     _mp.Stop();
                     _mp.Dispose();
                     _mp = null;
+                }
+                if (_media != null)
+                {
+                    _media.Dispose();
+                    _media = null;
                 }
                 if (_libVlc != null)
                 {
