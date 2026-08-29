@@ -52,6 +52,8 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _libVlc = new LibVLC();
                 _mp = new MediaPlayer(_libVlc);
                 VideoHost.MediaPlayer = _mp;
+                // 显式初始音量对齐滑块 100%（libvlc 初始音量未设置时可能非 1.0，拉一下才变）
+                ApplyVolume();
 
                 _mp.Playing += OnPlaying;
                 _mp.Paused += OnPaused;
@@ -307,7 +309,7 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         // ---------- 音量（指数曲线，人耳对数感知） ----------
 
-        private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void ApplyVolume()
         {
             if (_mp != null)
             {
@@ -317,6 +319,11 @@ namespace UniversalConvert.Plugin.VlcVideo
             {
                 VolumeText.Text = string.Format("{0:0}%", VolumeSlider.Value * 100);
             }
+        }
+
+        private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            ApplyVolume();
         }
 
         private static double VolumeToAmplitude(double sliderValue)
