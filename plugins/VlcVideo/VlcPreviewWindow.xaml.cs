@@ -174,8 +174,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         }
 
         /// <summary>
-        /// 显示封面：优先 libvlc 导出的 ArtworkURL（延迟落盘则轮询）；
-        /// 失败（如 libvlc 对非 ASCII artistalbum 路径导出 bug）时用宿主 ffmpeg 自行抽取 attached pic。
+        /// 显示封面（libvlc 导出 artwork 可能晚于 ParsedChanged 落盘：轮询几次）。
         /// </summary>
         private void TryShowCover(string localPath)
         {
@@ -186,52 +185,9 @@ namespace UniversalConvert.Plugin.VlcVideo
                 if (LoadCover(localPath) || --attempts <= 0)
                 {
                     timer.Stop();
-                    if (attempts <= 0)
-                    {
-                        ExtractCoverWithFfmpeg();
-                    }
                 }
             };
             timer.Start();
-        }
-
-        /// <summary>ffmpeg 抽出内嵌封面（attached pic）为临时 PNG 显示（BitmapCacheOption.OnLoad 已解码，可立即删除）。</summary>
-        private void ExtractCoverWithFfmpeg()
-        {
-            var plugin = _pluginRef?.Target as VlcVideoPlugin;
-            var ffmpeg = plugin?.Context?.FindTool("ffmpeg");
-            if (string.IsNullOrEmpty(ffmpeg) || _coverImage == null) return;
-
-            var tmp = Path.Combine(Path.GetTempPath(), "uc-vcover-" + Guid.NewGuid().ToString("N") + ".png");
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = ffmpeg,
-                    Arguments = "-y -hide_banner -loglevel error -i " + Quote(_filePath) +
-                                " -an -c:v png -frames:v 1 " + Quote(tmp),
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                var exitCode = System.Threading.Tasks.Task.Run(() =>
-                {
-                    using (var proc = System.Diagnostics.Process.Start(psi))
-                    {
-                        if (proc == null) return -1;
-                        proc.WaitForExit(5000);
-                        return proc.ExitCode;
-                    }
-                }).Result;
-
-                if (exitCode == 0 && File.Exists(tmp))
-                {
-                    if (LoadCover(tmp))
-                    {
-                        try { File.Delete(tmp); } catch { }
-                    }
-                }
-            }
-            catch { }
         }
 
         private bool LoadCover(string localPath)
