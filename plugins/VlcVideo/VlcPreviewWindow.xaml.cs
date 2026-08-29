@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
+using LibVLCSharp.WPF;
 
 namespace UniversalConvert.Plugin.VlcVideo
 {
@@ -16,6 +17,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private static bool _initialized;
 
         private readonly string _filePath;
+        private VideoView VideoHost;
         private LibVLC _libVlc;
         private MediaPlayer _mp;
         private readonly DispatcherTimer _timer = new DispatcherTimer();
@@ -42,6 +44,11 @@ namespace UniversalConvert.Plugin.VlcVideo
             try
             {
                 EnsureInitialized();
+                // 动态创建 VideoView（XAML 引用会因程序集探测路径问题加载失败）
+                VideoHost = new VideoView { Background = System.Windows.Media.Brushes.Black };
+                VideoHost.PreviewMouseLeftButtonDown += OnVideoMouseLeftDown;
+                HostGrid.Children.Add(VideoHost);
+
                 _libVlc = new LibVLC();
                 _mp = new MediaPlayer(_libVlc);
                 VideoHost.MediaPlayer = _mp;
