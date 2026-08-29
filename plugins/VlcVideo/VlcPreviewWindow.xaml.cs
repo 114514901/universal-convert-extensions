@@ -48,7 +48,7 @@ namespace UniversalConvert.Plugin.VlcVideo
 
                 _mp.Playing += OnPlaying;
                 _mp.Paused += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
-                _mp.Stop += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
+                _mp.Stopped += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
                 _mp.EndReached += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
                 _mp.TimeChanged += OnTimeChanged;
                 _mp.LengthChanged += OnLengthChanged;
@@ -78,7 +78,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 if (_initialized) return;
                 var dllDir = Path.GetDirectoryName(typeof(VlcVideoPlugin).Assembly.Location);
                 var libDir = Path.Combine(dllDir ?? string.Empty, "tools");
-                Core.Initialize(libDir);
+                LibVLCSharp.Shared.Core.Initialize(libDir);
                 _initialized = true;
             }
         }
