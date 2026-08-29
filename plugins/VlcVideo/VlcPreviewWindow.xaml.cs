@@ -530,7 +530,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 if (string.IsNullOrEmpty(json)) return null;
                 var timeline = new BitrateTimeline();
                 var regex = new System.Text.RegularExpressions.Regex(
-                    ""pts_time":\s*([0-9.]+)[^}]*?"size":\s*(\d+)",
+                    \"pts_time\":\\s*([0-9.]+)[^}]*?\"size\":\\s*(\\d+)",
                     System.Text.RegularExpressions.RegexOptions.Singleline);
                 long cum = 0;
                 foreach (System.Text.RegularExpressions.Match m in regex.Matches(json))
