@@ -33,19 +33,18 @@ namespace UniversalConvert.Plugin.VlcVideo
         private bool _pendingClick;
         private int _pendingSeekSeconds;
 
-        public VlcPreviewWindow(string filePath)
+        public VlcPreviewWindow(string filePath, string displayName = null)
         {
             InitializeComponent();
             _filePath = filePath;
             Title = "UniversalConvert";
+            TitleText.Text = displayName ?? Path.GetFileName(filePath);
             _timer.Interval = TimeSpan.FromMilliseconds(200);
             _timer.Tick += OnTimerTick;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            TitleText.Text = Path.GetFileName(_filePath);
-
             try
             {
                 EnsureInitialized();
@@ -154,7 +153,8 @@ namespace UniversalConvert.Plugin.VlcVideo
                     var shown = string.Join(" - ", new[] { artist, title }.Where(x => !string.IsNullOrEmpty(x)));
                     if (!string.IsNullOrEmpty(shown))
                     {
-                        TitleText.Text = shown;
+                        MetaText.Text = shown;
+                        MetaText.Visibility = Visibility.Visible;
                     }
                 }
 
