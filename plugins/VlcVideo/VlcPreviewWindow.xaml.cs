@@ -90,13 +90,17 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
         }
 
-        // LibVLCSharp 事件回调在 VLC 内部线程触发，所有 UI 更新必须回到 UI 线程
+        // LibVLCSharp 事件回调在 VLC 内部线程触发，所有 UI 更新必须回到 UI 线程。
+        // 注意：此处不能访问任何依赖属性（如 IsLoaded）——非 UI 线程读取同样抛跨线程异常。
         private void OnUi(Action action)
         {
-            if (!IsLoaded) return;
             try
             {
-                Dispatcher.BeginInvoke(action);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try { action(); }
+                    catch { /* 窗口已关闭等场景：忽略 */ }
+                }));
             }
             catch { }
         }
