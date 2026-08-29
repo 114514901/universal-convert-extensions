@@ -429,6 +429,8 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         // ---- libvlc 实时统计（LibVLCSharp 3.x 未封装，直接 P/Invoke） ----
 
+        // 与 vlc 3.0.21 include/vlc/libvlc_media.h 的 libvlc_media_stats_t 逐字段一致（共 15 项）：
+        // 字段不足/顺序错位会导致 libvlc 越界写 → 2s 原生崩溃
         [StructLayout(LayoutKind.Sequential)]
         private struct MediaStats
         {
@@ -442,8 +444,11 @@ namespace UniversalConvert.Plugin.VlcVideo
             public int DecodedAudio;
             public int DisplayedPictures;
             public int LostPictures;
-            public int LostABuffers;
             public int PlayedABuffers;
+            public int LostABuffers;
+            public int SentPackets;
+            public int SentBytes;
+            public float SendBitrate;
         }
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
