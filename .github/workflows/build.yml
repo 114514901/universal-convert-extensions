@@ -58,8 +58,9 @@ jobs:
           # NuGet 还原的 VideoLAN.LibVLC.Windows 原生运行库（libvlc.dll/libvlccore.dll/plugins/...）
           $vld = Get-ChildItem "$env:USERPROFILE\.nuget\packages\videolan.libvlc.windows" -Directory | Sort-Object Name -Descending | Select-Object -First 1
           if (-not $vld) { throw "未找到 videolan.libvlc.windows 包" }
-          $native = Join-Path $vld.FullName "runtimes\win-x64\native"
-          if (-not (Test-Path $native)) { throw "缺少 runtimes\win-x64\native：$native" }
+          # VideoLAN.LibVLC.Windows 包内布局：build\x64（libvlc.dll/libvlccore.dll/plugins/lua/...）
+          $native = Join-Path $vld.FullName "build\x64"
+          if (-not (Test-Path $native)) { throw "缺少 build\x64：$native" }
           Copy-Item "$native\*" package\tools\ -Recurse -Force
           Write-Host "===== VLC 运行库内容 ====="
           Get-ChildItem package\tools -Recurse -File | Measure-Object -Property Length -Sum | ForEach-Object { "文件数: $($_.Count), 总大小: $([math]::Round($_.Sum/1MB,1)) MB" }
