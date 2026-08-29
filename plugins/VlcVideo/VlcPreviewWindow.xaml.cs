@@ -142,7 +142,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 }
 
                 // 音频（无视频轨）时显示内嵌封面
-                if (_mp != null && (_mp.VideoTrackCount ?? 0) <= 0)
+                if (_mp != null && _mp.VideoTrackCount <= 0)
                 {
                     try
                     {
