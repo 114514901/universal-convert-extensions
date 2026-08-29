@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -60,7 +59,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                     Stretch = System.Windows.Media.Stretch.Uniform,
                     Visibility = Visibility.Collapsed
                 };
-                RenderOptions.SetBitmapScalingMode(_coverImage, System.Windows.Media.BitmapScalingMode.HighQuality);
+                System.Windows.Media.RenderOptions.SetBitmapScalingMode(_coverImage, System.Windows.Media.BitmapScalingMode.HighQuality);
                 HostGrid.Children.Add(_coverImage);
 
                 _libVlc = new LibVLC();
