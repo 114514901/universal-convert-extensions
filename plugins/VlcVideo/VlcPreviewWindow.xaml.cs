@@ -321,6 +321,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             var plugin = _pluginRef?.Target as VlcVideoPlugin;
             var ffprobe = plugin?.Context?.FindTool("ffprobe");
+            LogDebug("ffprobe 路径: " + (ffprobe ?? "(未找到)"));
             if (string.IsNullOrEmpty(ffprobe) || InfoText == null)
             {
                 return;
@@ -345,6 +346,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                         if (proc == null) return string.Empty;
                         var text = proc.StandardOutput.ReadToEnd();
                         proc.WaitForExit(5000);
+                        LogDebug("ffprobe exit=" + proc.ExitCode + " 输出=[" + text + "]");
                         return text;
                     }
                 });
@@ -383,6 +385,8 @@ namespace UniversalConvert.Plugin.VlcVideo
 
                     _staticInfoSuffix = parts.Count > 0 ? " · " + string.Join(" · ", parts) : "";
                     var text1 = (CurrentBitrateKbps() > 0 ? string.Format("{0:0} kbps", CurrentBitrateKbps()) : "—") + _staticInfoSuffix;
+                    LogDebug(string.Format("解析完成: staticBitrate={0:0.#} suffix=[{1}] 显示=[{2}]",
+                        _staticBitrateKbps, _staticInfoSuffix, text1));
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try { if (InfoText != null) InfoText.Text = text1; } catch { }
@@ -454,14 +458,39 @@ namespace UniversalConvert.Plugin.VlcVideo
                 if (_media != null)
                 {
                     MediaStats st;
-                    if (libvlc_media_get_stats(_media.NativeReference, out st) != 0 && st.DemuxBitrate > 0)
+                    var ok = libvlc_media_get_stats(_media.NativeReference, out st);
+                    if (ok != 0 && st.DemuxBitrate > 0)
                     {
                         return st.DemuxBitrate;
                     }
+                    LogDebug(string.Format("stats: ok={0} demux={1:0.#} readBytes={2}", ok, st.DemuxBitrate, st.ReadBytes));
+                }
+                else
+                {
+                    LogDebug("stats: media 为空");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogDebug("stats P/Invoke 异常: " + ex);
+            }
+            LogDebug(string.Format("stats 回落静态码率: {0:0.#} kbps", _staticBitrateKbps));
             return _staticBitrateKbps;
+        }
+
+        private DateTime _lastDebugLog;
+        /// <summary>debug 日志（节流：至少间隔 3 秒，避免刷屏）。</summary>
+        private void LogDebug(string message)
+        {
+            var now = DateTime.Now;
+            if ((now - _lastDebugLog).TotalSeconds < 3) return;
+            _lastDebugLog = now;
+            try
+            {
+                var plugin = _pluginRef?.Target as VlcVideoPlugin;
+                plugin?.Log("VLC debug: " + message);
+            }
+            catch { }
         }
 
         private static string Quote(string path)
