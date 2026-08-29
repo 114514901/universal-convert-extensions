@@ -283,8 +283,38 @@ namespace UniversalConvert.Plugin.VlcVideo
                 ? TimeSpan.FromMilliseconds(_mp.Length)
                 : TimeSpan.Zero;
             TimeText.Text = string.Format("{0:hh\\:mm\\:ss} / {1:hh\\:mm\\:ss}", pos, total);
+            UpdateStreamInfo();
         }
 
+
+        /// <summary>实时流信息：码率（kbps）/ 采样率（kHz）/ 声道。值未知时显示 —。</summary>
+        private void UpdateStreamInfo()
+        {
+            if (_mp == null || InfoText == null) return;
+
+            var parts = new System.Collections.Generic.List<string>();
+
+            var bitrate = _mp.Bitrate;
+            parts.Add(bitrate > 0 ? string.Format("{0} kbps", bitrate) : "—");
+
+            var sampleRate = _mp.SampleRate;
+            if (sampleRate > 0)
+            {
+                parts.Add(string.Format("{0:0.#} kHz", sampleRate / 1000.0));
+            }
+            else
+            {
+                parts.Add("—");
+            }
+
+            var channels = _mp.ChannelCount;
+            if (channels == 1) parts.Add("单声道");
+            else if (channels == 2) parts.Add("立体声");
+            else if (channels > 2) parts.Add(string.Format("{0}声道", channels));
+            else parts.Add("—");
+
+            InfoText.Text = string.Join(" · ", parts);
+        }
         // ---------- 控制 ----------
 
         private void OnPlayPause(object sender, RoutedEventArgs e)
