@@ -57,9 +57,9 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _coverImage = new Image
                 {
                     Stretch = System.Windows.Media.Stretch.Uniform,
-                    Visibility = Visibility.Collapsed,
-                    RenderOptions = { BitmapScalingMode = System.Windows.Media.BitmapScalingMode.HighQuality }
+                    Visibility = Visibility.Collapsed
                 };
+                RenderOptions.SetBitmapScalingMode(_coverImage, System.Windows.Media.BitmapScalingMode.HighQuality);
                 HostGrid.Children.Add(_coverImage);
 
                 _libVlc = new LibVLC();
@@ -142,7 +142,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 }
 
                 // 音频（无视频轨）时显示内嵌封面
-                if (_mp != null && _mp.VideoTracksCount <= 0)
+                if (_mp != null && _mp.TracksCount(TrackType.Video) <= 0)
                 {
                     try
                     {
