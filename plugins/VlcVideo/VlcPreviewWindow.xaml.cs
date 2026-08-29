@@ -54,9 +54,9 @@ namespace UniversalConvert.Plugin.VlcVideo
                 VideoHost.MediaPlayer = _mp;
 
                 _mp.Playing += OnPlaying;
-                _mp.Paused += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
-                _mp.Stopped += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
-                _mp.EndReached += (s, args) => { _playing = false; PlayPauseButton.Content = "播放"; };
+                _mp.Paused += OnPaused;
+                _mp.Stopped += OnStopped;
+                _mp.EndReached += OnEndReached;
                 _mp.TimeChanged += OnTimeChanged;
                 _mp.LengthChanged += OnLengthChanged;
 
@@ -90,34 +90,72 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
         }
 
+        // LibVLCSharp 事件回调在 VLC 内部线程触发，所有 UI 更新必须回到 UI 线程
+        private void OnUi(Action action)
+        {
+            if (!IsLoaded) return;
+            try
+            {
+                Dispatcher.BeginInvoke(action);
+            }
+            catch { }
+        }
+
         private void OnPlaying(object sender, EventArgs e)
         {
-            PlayPauseButton.IsEnabled = true;
-            if (_mp.Length > 0)
+            OnUi(() =>
             {
-                ProgressSlider.Maximum = _mp.Length / 1000.0;
-                ProgressSlider.IsEnabled = true;
-            }
+                PlayPauseButton.IsEnabled = true;
+                if (_mp != null && _mp.Length > 0)
+                {
+                    ProgressSlider.Maximum = _mp.Length / 1000.0;
+                    ProgressSlider.IsEnabled = true;
+                }
+            });
+        }
+
+        private void OnPaused(object sender, EventArgs e)
+        {
+            _playing = false;
+            OnUi(() => PlayPauseButton.Content = "播放");
+        }
+
+        private void OnStopped(object sender, EventArgs e)
+        {
+            _playing = false;
+            OnUi(() => PlayPauseButton.Content = "播放");
+        }
+
+        private void OnEndReached(object sender, EventArgs e)
+        {
+            _playing = false;
+            OnUi(() => PlayPauseButton.Content = "播放");
         }
 
         private void OnLengthChanged(object sender, MediaPlayerLengthChangedEventArgs e)
         {
-            if (e.Length > 0)
+            OnUi(() =>
             {
-                ProgressSlider.Maximum = e.Length / 1000.0;
-                ProgressSlider.IsEnabled = true;
-            }
+                if (e.Length > 0)
+                {
+                    ProgressSlider.Maximum = e.Length / 1000.0;
+                    ProgressSlider.IsEnabled = true;
+                }
+            });
         }
 
         private void OnTimeChanged(object sender, MediaPlayerTimeChangedEventArgs e)
         {
-            if (_seeking) return;
-            var seconds = e.Time / 1000.0;
-            if (seconds >= 0 && ProgressSlider.Maximum > 0)
+            OnUi(() =>
             {
-                ProgressSlider.Value = seconds;
-            }
-            UpdateTimeText(e.Time / 1000.0);
+                if (_seeking) return;
+                var seconds = e.Time / 1000.0;
+                if (seconds >= 0 && ProgressSlider.Maximum > 0)
+                {
+                    ProgressSlider.Value = seconds;
+                }
+                UpdateTimeText(e.Time / 1000.0);
+            });
         }
 
         private void OnTimerTick(object sender, EventArgs e)
