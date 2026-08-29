@@ -161,24 +161,54 @@ namespace UniversalConvert.Plugin.VlcVideo
                 // 音频（无视频轨）时显示内嵌封面
                 if (_mp != null && _mp.VideoTrackCount <= 0)
                 {
-                    try
+                    var art = _media.Meta(MetadataType.ArtworkURL);
+                    if (!string.IsNullOrEmpty(art))
                     {
-                        var art = _media.Meta(MetadataType.ArtworkURL);
-                        if (!string.IsNullOrEmpty(art) && File.Exists(art))
-                        {
-                            var bmp = new System.Windows.Media.Imaging.BitmapImage();
-                            bmp.BeginInit();
-                            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                            bmp.UriSource = new Uri(art);
-                            bmp.EndInit();
-                            bmp.Freeze();
-                            _coverImage.Source = bmp;
-                            _coverImage.Visibility = Visibility.Visible;
-                        }
+                        // ArtworkURL 为 file:/// URI 形式，需转本地路径
+                        string local = art;
+                        try { local = new Uri(art).LocalPath; } catch { }
+                        TryShowCover(local);
                     }
-                    catch { }
                 }
             });
+        }
+
+        /// <summary>
+        /// 显示封面（libvlc 导出 artwork 可能晚于 ParsedChanged 落盘：轮询几次）。
+        /// </summary>
+        private void TryShowCover(string localPath)
+        {
+            var attempts = 5;
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            timer.Tick += (s, e) =>
+            {
+                if (LoadCover(localPath) || --attempts <= 0)
+                {
+                    timer.Stop();
+                }
+            };
+            timer.Start();
+        }
+
+        private bool LoadCover(string localPath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath)) return false;
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(localPath);
+                bmp.EndInit();
+                bmp.Freeze();
+                _coverImage.Source = bmp;
+                _coverImage.Visibility = Visibility.Visible;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void OnPlaying(object sender, EventArgs e)
