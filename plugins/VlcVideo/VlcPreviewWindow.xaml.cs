@@ -222,6 +222,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                     ProgressSlider.IsEnabled = true;
                 }
             });
+            LoadStreamInfoAsync();
         }
 
         private void OnPaused(object sender, EventArgs e)
@@ -283,37 +284,86 @@ namespace UniversalConvert.Plugin.VlcVideo
                 ? TimeSpan.FromMilliseconds(_mp.Length)
                 : TimeSpan.Zero;
             TimeText.Text = string.Format("{0:hh\\:mm\\:ss} / {1:hh\\:mm\\:ss}", pos, total);
-            UpdateStreamInfo();
         }
 
 
-        /// <summary>实时流信息：码率（kbps）/ 采样率（kHz）/ 声道。值未知时显示 —。</summary>
-        private void UpdateStreamInfo()
+        /// <summary>流信息：码率（kbps）/ 采样率（kHz）/ 声道。LibVLCSharp 3.x 无实时统计 API，
+        /// 用宿主的 ffprobe 一次性探测；未知值显示 —。</summary>
+        private void LoadStreamInfoAsync()
         {
-            if (_mp == null || InfoText == null) return;
-
-            var parts = new System.Collections.Generic.List<string>();
-
-            var bitrate = _mp.Bitrate;
-            parts.Add(bitrate > 0 ? string.Format("{0} kbps", bitrate) : "—");
-
-            var sampleRate = _mp.SampleRate;
-            if (sampleRate > 0)
+            var plugin = _pluginRef?.Target as VlcVideoPlugin;
+            var ffprobe = plugin?.Context?.FindTool("ffprobe");
+            if (string.IsNullOrEmpty(ffprobe) || InfoText == null)
             {
-                parts.Add(string.Format("{0:0.#} kHz", sampleRate / 1000.0));
-            }
-            else
-            {
-                parts.Add("—");
+                return;
             }
 
-            var channels = _mp.ChannelCount;
-            if (channels == 1) parts.Add("单声道");
-            else if (channels == 2) parts.Add("立体声");
-            else if (channels > 2) parts.Add(string.Format("{0}声道", channels));
-            else parts.Add("—");
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = ffprobe,
+                    Arguments = "-v error -select_streams a:0 -show_entries stream=bit_rate,sample_rate,channels " +
+                                "-of default=noprint_wrappers=1 " + Quote(_filePath),
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true
+                };
 
-            InfoText.Text = string.Join(" · ", parts);
+                var task = System.Threading.Tasks.Task.Run(() =>
+                {
+                    using (var proc = System.Diagnostics.Process.Start(psi))
+                    {
+                        if (proc == null) return string.Empty;
+                        var text = proc.StandardOutput.ReadToEnd();
+                        proc.WaitForExit(5000);
+                        return text;
+                    }
+                });
+
+                _ = task.ContinueWith(t =>
+                {
+                    var text = t.Result ?? string.Empty;
+                    var values = new System.Collections.Generic.Dictionary<string, string>();
+                    foreach (var line in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var eq = line.IndexOf('=');
+                        if (eq > 0)
+                        {
+                            values[line.Substring(0, eq)] = line.Substring(eq + 1);
+                        }
+                    }
+
+                    string bitrate = null, sampleRate = null, channels = null;
+                    values.TryGetValue("bit_rate", out bitrate);
+                    values.TryGetValue("sample_rate", out sampleRate);
+                    values.TryGetValue("channels", out channels);
+
+                    var parts = new System.Collections.Generic.List<string>();
+                    long br;
+                    long.TryParse(bitrate, out br);
+                    parts.Add(br > 0 ? string.Format("{0} kbps", br / 1000) : "—");
+                    long sr;
+                    long.TryParse(sampleRate, out sr);
+                    parts.Add(sr > 0 ? string.Format("{0:0.#} kHz", sr / 1000.0) : "—");
+                    long ch;
+                    long.TryParse(channels, out ch);
+                    if (ch == 1) parts.Add("单声道");
+                    else if (ch == 2) parts.Add("立体声");
+                    else if (ch > 2) parts.Add(string.Format("{0}声道", ch));
+                    else parts.Add("—");
+
+                    var text1 = string.Join(" · ", parts);
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try { if (InfoText != null) InfoText.Text = text1; } catch { }
+                    }));
+                }, System.Threading.Tasks.TaskScheduler.Default);
+            }
+            catch
+            {
+                // 探测失败：保持 — 不打扰
+            }
         }
         // ---------- 控制 ----------
 
@@ -342,6 +392,11 @@ namespace UniversalConvert.Plugin.VlcVideo
             PlayPauseButton.Content = "播放";
             ProgressSlider.Value = 0;
             TimeText.Text = string.Empty;
+        }
+
+        private static string Quote(string path)
+        {
+            return "\"" + path.Replace("\"", "\\\"") + "\"";
         }
 
         private void OnClose(object sender, RoutedEventArgs e)
