@@ -30,6 +30,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private float _staticBitrateKbps = -1;
         private string _staticInfoSuffix = "";
         private readonly DispatcherTimer _timer = new DispatcherTimer();
+        private readonly DispatcherTimer _infoTimer = new DispatcherTimer();
         private bool _playing;
         private bool _wasPlayingBeforeSeek;
         private bool _seeking;
@@ -45,6 +46,8 @@ namespace UniversalConvert.Plugin.VlcVideo
             TitleText.Text = displayName ?? Path.GetFileName(filePath);
             _timer.Interval = TimeSpan.FromMilliseconds(200);
             _timer.Tick += OnTimerTick;
+            _infoTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _infoTimer.Tick += OnInfoTimerTick;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -87,6 +90,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _playing = true;
                 PlayPauseButton.Content = "暂停";
                 _timer.Start();
+                _infoTimer.Start();
             }
             catch (Exception ex)
             {
@@ -277,6 +281,20 @@ namespace UniversalConvert.Plugin.VlcVideo
                     InfoText.Text = (br > 0 ? string.Format("{0:0} kbps", br) : "—") + _staticInfoSuffix;
                 }
             });
+        }
+
+        private void OnInfoTimerTick(object sender, EventArgs e)
+        {
+            // 独立轮询刷新流信息（不依赖 TimeChanged 事件链）
+            if (InfoText != null)
+            {
+                try
+                {
+                    var br = CurrentBitrateKbps();
+                    InfoText.Text = (br > 0 ? string.Format("{0:0} kbps", br) : "—") + _staticInfoSuffix;
+                }
+                catch { }
+            }
         }
 
         private void OnTimerTick(object sender, EventArgs e)
@@ -579,6 +597,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private void OnClosed(object sender, EventArgs e)
         {
             _timer.Stop();
+            _infoTimer.Stop();
             try
             {
                 if (_mp != null)
