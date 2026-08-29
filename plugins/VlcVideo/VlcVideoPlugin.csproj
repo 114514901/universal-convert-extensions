@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>7.3</LangVersion>
+    <UseWPF>true</UseWPF>
     <RootNamespace>UniversalConvert.Plugin.VlcVideo</RootNamespace>
     <AssemblyName>UniversalConvert.Plugin.VlcVideo</AssemblyName>
   </PropertyGroup>

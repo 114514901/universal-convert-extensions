@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using UniversalConvert.Core.Models;
 using UniversalConvert.Core.Plugins;
 
 namespace UniversalConvert.Plugin.VlcVideo
@@ -19,7 +22,22 @@ namespace UniversalConvert.Plugin.VlcVideo
         public string MaxAppVersion => null;
         public string Author => "UniversalConvert";
 
-        public IReadOnlyList<ConversionCapability> GetCapabilities() => Array.Empty<ConversionCapability>();
+        private IPluginContext _context;
+
+        public void Initialize(IPluginContext context) { _context = context; }
+
+        public bool IsToolAvailable() => true;
+
+        public bool IsUntested => false;
+
+        // 本扩展只提供视频预览，不注册任何格式转换
+        public IList<ConversionCapability> GetCapabilities() => new List<ConversionCapability>();
+
+        public Task<ConversionResult> ConvertAsync(
+            ConversionRequest request, IProgress<ConversionProgress> progress, CancellationToken ct)
+        {
+            return Task.FromResult(ConversionResult.Failed("VLC 播放器扩展不提供格式转换", TimeSpan.Zero));
+        }
 
         public bool CanPreviewVideo(string extension) => true;
 
