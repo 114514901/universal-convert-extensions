@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <RootNamespace>UniversalConvert.Plugin.VlcVideo</RootNamespace>
+    <AssemblyName>UniversalConvert.Plugin.VlcVideo</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core SDK 由 CI 从主仓库 Release 下载到 lib\ -->
+    <Reference Include="UniversalConvert.Core">
+      <HintPath>..\..\lib\UniversalConvert.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp" Version="4.0.0" />
+    <PackageReference Include="LibVLCSharp.WPF" Version="4.0.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" GeneratePathProperty="true" />
+  </ItemGroup>
+
+</Project>

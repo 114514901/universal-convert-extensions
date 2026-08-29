@@ -116,6 +116,17 @@
       "size": 226960470,
       "sha256": "f4a776d4b6af5d274b19fd9215252e79fdffd091cd2b3bd17b6d58a7d9351cb8",
       "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/FasterWhisper-1.0.0/FasterWhisper-1.0.0.zip"
+    },
+    {
+      "id": "com.universalconvert.vlcvideo",
+      "name": "VLC 视频播放器",
+      "description": "视频预览增强：基于 VLC 的全格式播放（mkv/webm/hevc/rmvb 等），拖拽进度条原生帧预览，无需转码兜底",
+      "version": "1.0.0",
+      "author": "UniversalConvert",
+      "minAppVersion": "2.4.0",
+      "maxAppVersion": null,
+      "homepage": "https://www.videolan.org/vlc/",
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/VlcVideo-1.0.0/VlcVideo-1.0.0.zip"
     }
   ]
 }
