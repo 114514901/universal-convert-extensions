@@ -26,9 +26,9 @@ jobs:
           $ErrorActionPreference = "Stop"
           $data = Get-Content index.json -Raw | ConvertFrom-Json
           foreach ($p in $data.plugins) {
-            # 约定 downloadUrl 尾缀为 {版本}.zip（前缀为目录名，如 VlcVideo-1.2.6.zip）
-            if (-not $p.downloadUrl.EndsWith("/$($p.version).zip")) {
-              throw "index 不一致: $($p.id) downloadUrl 尾缀应含 /$($p.version).zip（当前：$($p.downloadUrl)）"
+            # 约定 downloadUrl 尾缀为 {目录名}-{版本}.zip（连字符分隔，如 VlcVideo-1.2.6.zip）
+            if (-not $p.downloadUrl.EndsWith("-$($p.version).zip")) {
+              throw "index 不一致: $($p.id) downloadUrl 尾缀应为 -$($p.version).zip（当前：$($p.downloadUrl)）"
             }
           }
           Write-Host "index 一致性校验通过（$($data.plugins.Count) 项）"
