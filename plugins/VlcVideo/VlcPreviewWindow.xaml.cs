@@ -81,7 +81,7 @@ namespace UniversalConvert.Plugin.VlcVideo
             {
                 if (_libVlcInitialized) return;
                 var dllDir = Path.GetDirectoryName(typeof(VlcVideoPlugin).Assembly.Location);
-                Core.Initialize(Path.Combine(dllDir ?? string.Empty, "tools"));
+                LibVLCSharp.Shared.Core.Initialize(Path.Combine(dllDir ?? string.Empty, "tools"));
                 _libVlcInitialized = true;
             }
         }
