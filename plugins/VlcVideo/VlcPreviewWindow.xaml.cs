@@ -36,6 +36,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private readonly DispatcherTimer _infoTimer = new DispatcherTimer();
         private readonly DispatcherTimer _clickTimer = new DispatcherTimer();
 
+        private bool _ready;
         private bool _playing;
         private bool _seeking;
         private bool _wasPlayingBeforeSeek;
@@ -63,6 +64,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                 EnsureLibVlcInitialized();
                 BuildMediaElements();
                 StartPlayback();
+                _ready = true;
             }
             catch (Exception ex)
             {
@@ -117,7 +119,16 @@ namespace UniversalConvert.Plugin.VlcVideo
             _mp.TimeChanged += OnTimeChanged;
             _mp.LengthChanged += OnLengthChanged;
 
-            ApplyVolume();
+            // 音量：恢复上次记录（0-1）；无记录默认满音量
+            var savedVolume = LoadSavedVolume();
+            if (savedVolume.HasValue)
+            {
+                VolumeSlider.Value = savedVolume.Value;
+            }
+            else
+            {
+                ApplyVolume();
+            }
 
             _media = new Media(_libVlc, new Uri(_filePath));
             _media.ParsedChanged += OnMediaParsedChanged;
@@ -398,6 +409,11 @@ namespace UniversalConvert.Plugin.VlcVideo
             {
                 VolumeText.Text = string.Format("{0:0}%", VolumeSlider.Value * 100);
             }
+            // 仅窗口就绪（OnLoaded 完成后）持久化，避免 XAML 初始化/恢复阶段误写
+            if (_ready)
+            {
+                SaveVolume(VolumeSlider.Value);
+            }
         }
 
         private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -410,6 +426,41 @@ namespace UniversalConvert.Plugin.VlcVideo
             if (sliderValue <= 0) return 0;
             if (sliderValue >= 1) return 1;
             return Math.Pow(sliderValue, 2.0);
+        }
+
+        // ---------- 音量记忆（与内置播放器共享同一配置文件） ----------
+
+        private static string VolumeFilePath => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "UniversalConvert", "preview-volume.txt");
+
+        private static double? LoadSavedVolume()
+        {
+            try
+            {
+                var path = VolumeFilePath;
+                if (!File.Exists(path)) return null;
+                double v;
+                var text = File.ReadAllText(path).Trim();
+                if (!double.TryParse(text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out v)) return null;
+                if (v < 0) v = 0;
+                if (v > 1) v = 1;
+                return v;
+            }
+            catch { return null; }
+        }
+
+        private static void SaveVolume(double value)
+        {
+            try
+            {
+                var path = VolumeFilePath;
+                var dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(path, value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            catch { }
         }
 
         // ---------- 关闭清理 ----------
