@@ -203,7 +203,7 @@ namespace UniversalConvert.Plugin.VlcVideo
 
                 var timeline = new BitrateTimeline();
                 var regex = new Regex(
-                    "\"pts_time\":\\s*([0-9.]+)[^}]*?\"size\":\\s*(\\d+)",
+                    "\"pts_time\":\\s*\"([0-9.]+)\"[^}]*?\"size\":\\s*\"(\\d+)\"",
                     RegexOptions.Singleline);
                 long cum = 0;
                 foreach (Match m in regex.Matches(json))
