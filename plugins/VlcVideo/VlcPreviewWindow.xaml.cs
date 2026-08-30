@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WPF;
@@ -11,30 +11,34 @@ using LibVLCSharp.WPF;
 namespace UniversalConvert.Plugin.VlcVideo
 {
     /// <summary>
-    /// VLC 视频预览窗口：直接播放任意格式；拖拽进度条 VLC 原生渲染 seek 帧；
-    /// 双击画面播放/暂停，左右 1/3 单击 ±5 秒；音量指数曲线。
+    /// VLC 预览窗口：全格式播放、拖拽进度条原生 seek 帧、双击播放/暂停、左右 1/3 单击 ±5 秒、
+    /// 指数音量、音频封面与流信息（码率/采样率/声道）。
+    /// 复杂逻辑拆到 MediaInfoService / CoverArtService。
     /// </summary>
     public partial class VlcPreviewWindow : Window
     {
         private static readonly object InitializeLock = new object();
-        private static bool _initialized;
+        private static bool _libVlcInitialized;
+
+        internal static WeakReference PluginRef;
 
         private readonly string _filePath;
-        private VideoView VideoHost;
-        internal static WeakReference _pluginRef;
+        private readonly string _displayName;
+
+        private VideoView _videoHost;
         private Image _coverImage;
         private LibVLC _libVlc;
         private MediaPlayer _mp;
         private Media _media;
-        private float _staticBitrateKbps = -1;
-        private string _staticInfoSuffix = "";
-        private BitrateTimeline _timeline;
-        private readonly DispatcherTimer _timer = new DispatcherTimer();
+        private MediaInfoService _mediaInfo;
+
+        private readonly DispatcherTimer _uiTimer = new DispatcherTimer();
         private readonly DispatcherTimer _infoTimer = new DispatcherTimer();
-        private bool _playing;
-        private bool _wasPlayingBeforeSeek;
-        private bool _seeking;
         private readonly DispatcherTimer _clickTimer = new DispatcherTimer();
+
+        private bool _playing;
+        private bool _seeking;
+        private bool _wasPlayingBeforeSeek;
         private bool _pendingClick;
         private int _pendingSeekSeconds;
 
@@ -42,10 +46,12 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             InitializeComponent();
             _filePath = filePath;
+            _displayName = displayName;
             Title = "UniversalConvert";
             TitleText.Text = displayName ?? Path.GetFileName(filePath);
-            _timer.Interval = TimeSpan.FromMilliseconds(200);
-            _timer.Tick += OnTimerTick;
+
+            _uiTimer.Interval = TimeSpan.FromMilliseconds(200);
+            _uiTimer.Tick += OnUiTimerTick;
             _infoTimer.Interval = TimeSpan.FromMilliseconds(500);
             _infoTimer.Tick += OnInfoTimerTick;
         }
@@ -54,170 +60,121 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             try
             {
-                EnsureInitialized();
-                // 动态创建 VideoView（XAML 引用会因程序集探测路径问题加载失败）
-                VideoHost = new VideoView { Background = System.Windows.Media.Brushes.Black };
-                VideoHost.PreviewMouseLeftButtonDown += OnVideoMouseLeftDown;
-                HostGrid.Children.Add(VideoHost);
-
-                // 封面层（音频预览显示内嵌封面；置于 VideoView 之上）
-                _coverImage = new Image
-                {
-                    Stretch = System.Windows.Media.Stretch.Uniform,
-                    Visibility = Visibility.Collapsed
-                };
-                System.Windows.Media.RenderOptions.SetBitmapScalingMode(_coverImage, System.Windows.Media.BitmapScalingMode.HighQuality);
-                HostGrid.Children.Add(_coverImage);
-
-                _libVlc = new LibVLC();
-                _mp = new MediaPlayer(_libVlc);
-                VideoHost.MediaPlayer = _mp;
-                // 显式初始音量对齐滑块 100%（libvlc 初始音量未设置时可能非 1.0，拉一下才变）
-                ApplyVolume();
-
-                _mp.Playing += OnPlaying;
-                _mp.Paused += OnPaused;
-                _mp.Stopped += OnStopped;
-                _mp.EndReached += OnEndReached;
-                _mp.TimeChanged += OnTimeChanged;
-                _mp.LengthChanged += OnLengthChanged;
-
-                // 持有 Media 以便异步解析元数据/封面（libvlc 自动导出内嵌封面到临时文件）
-                _media = new Media(_libVlc, new Uri(_filePath));
-                _media.ParsedChanged += OnMediaParsedChanged;
-                _mp.Play(_media);
-                _media.Parse(MediaParseOptions.ParseLocal);
-                _playing = true;
-                PlayPauseButton.Content = "暂停";
-                _timer.Start();
-                _infoTimer.Start();
+                EnsureLibVlcInitialized();
+                BuildMediaElements();
+                StartPlayback();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("VLC 播放器初始化失败：" + ex.Message, "VLC 视频播放器",
+                MessageBox.Show("VLC 播放器初始化失败：" + ex.Message, "VLC 播放器",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 Close();
             }
         }
 
-        /// <summary>初始化 libvlc（进程内一次）：定位到本扩展目录下的 tools\libvlc.dll。</summary>
-        private static void EnsureInitialized()
+        // ---------- 初始化 ----------
+
+        private static void EnsureLibVlcInitialized()
         {
-            if (_initialized) return;
+            if (_libVlcInitialized) return;
             lock (InitializeLock)
             {
-                if (_initialized) return;
+                if (_libVlcInitialized) return;
                 var dllDir = Path.GetDirectoryName(typeof(VlcVideoPlugin).Assembly.Location);
-                var libDir = Path.Combine(dllDir ?? string.Empty, "tools");
-                LibVLCSharp.Shared.Core.Initialize(libDir);
-                _initialized = true;
+                Core.Initialize(Path.Combine(dllDir ?? string.Empty, "tools"));
+                _libVlcInitialized = true;
             }
         }
 
-        // LibVLCSharp 事件回调在 VLC 内部线程触发，所有 UI 更新必须回到 UI 线程。
-        // 注意：此处不能访问任何依赖属性（如 IsLoaded）——非 UI 线程读取同样抛跨线程异常。
+        private void BuildMediaElements()
+        {
+            // VideoView 代码动态创建（XAML 引用扩展目录程序集在 BAML 加载时无法解析）
+            _videoHost = new VideoView { Background = System.Windows.Media.Brushes.Black };
+            _videoHost.PreviewMouseLeftButtonDown += OnVideoMouseLeftDown;
+            HostGrid.Children.Add(_videoHost);
+
+            // 封面层（音频预览显示内嵌封面，置于 VideoView 之上）
+            _coverImage = new Image
+            {
+                Stretch = System.Windows.Media.Stretch.Uniform,
+                Visibility = Visibility.Collapsed
+            };
+            System.Windows.Media.RenderOptions.SetBitmapScalingMode(
+                _coverImage, System.Windows.Media.BitmapScalingMode.HighQuality);
+            HostGrid.Children.Add(_coverImage);
+        }
+
+        private void StartPlayback()
+        {
+            _libVlc = new LibVLC();
+            _mp = new MediaPlayer(_libVlc);
+            _videoHost.MediaPlayer = _mp;
+
+            _mp.Playing += OnPlaying;
+            _mp.Paused += OnPaused;
+            _mp.Stopped += OnStopped;
+            _mp.EndReached += OnEndReached;
+            _mp.TimeChanged += OnTimeChanged;
+            _mp.LengthChanged += OnLengthChanged;
+
+            ApplyVolume();
+
+            _media = new Media(_libVlc, new Uri(_filePath));
+            _media.ParsedChanged += OnMediaParsedChanged;
+            _mp.Play(_media);
+            _media.Parse(MediaParseOptions.ParseLocal);
+
+            _playing = true;
+            PlayPauseButton.Content = "暂停";
+            _uiTimer.Start();
+            _infoTimer.Start();
+        }
+
+        // ---------- 线程调度 ----------
+
+        /// <summary>LibVLCSharp 事件在 VLC 内部线程触发，UI 更新统一切回 UI 线程。
+        /// 注意不能在此访问依赖属性（如 IsLoaded）——非 UI 线程读取同样抛异常。</summary>
         private void OnUi(Action action)
         {
             try
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    try { action(); }
-                    catch { /* 窗口已关闭等场景：忽略 */ }
+                    try { action(); } catch { }
                 }));
             }
             catch { }
         }
 
-        // 元数据/封面解析完成（VLC 内部线程，UI 更新经 OnUi）
+        // ---------- 元数据 / 封面 ----------
+
         private void OnMediaParsedChanged(object sender, MediaParsedChangedEventArgs e)
         {
-            var status = e.ParsedStatus;
+            if (e.ParsedStatus != MediaParsedStatus.Done && e.ParsedStatus != MediaParsedStatus.Skipped) return;
+
             OnUi(() =>
             {
-                var plugin = _pluginRef?.Target as VlcVideoPlugin;
-                if (plugin == null) return;
-                if (_media == null)
-                {
-                    plugin.Log("VLC 封面解析：media 为空");
-                    return;
-                }
-                plugin.Log(string.Format("VLC 封面解析：status={0}", status));
-                if (status != MediaParsedStatus.Done && status != MediaParsedStatus.Skipped)
-                {
-                    plugin.Log("VLC 封面解析：跳过（非 Done/Skipped）");
-                    return;
-                }
-                plugin.Log("VLC 封面解析：title=" + (_media.Meta(MetadataType.Title) ?? "(空)") +
-                    ", artist=" + (_media.Meta(MetadataType.Artist) ?? "(空)"));
-                var artwork = _media.Meta(MetadataType.ArtworkURL);
-                plugin.Log("VLC 封面解析：artworkURL=" + (artwork ?? "(空)") +
-                    ", 存在=" + (!string.IsNullOrEmpty(artwork) && File.Exists(artwork)));
-                plugin.Log(string.Format("VLC 封面解析：videoTrackCount={0}", _mp == null ? -1 : _mp.VideoTrackCount));
-                var title = _media.Meta(MetadataType.Title);
+                if (_media == null) return;
+
+                // 第二行：艺术家 - 标题（无则不显示）
                 var artist = _media.Meta(MetadataType.Artist);
-                if (!string.IsNullOrEmpty(artist) || !string.IsNullOrEmpty(title))
+                var title = _media.Meta(MetadataType.Title);
+                var shown = string.Join(" - ", new[] { artist, title }.Where(x => !string.IsNullOrEmpty(x)));
+                if (!string.IsNullOrEmpty(shown))
                 {
-                    var shown = string.Join(" - ", new[] { artist, title }.Where(x => !string.IsNullOrEmpty(x)));
-                    if (!string.IsNullOrEmpty(shown))
-                    {
-                        MetaText.Text = shown;
-                        MetaText.Visibility = Visibility.Visible;
-                    }
+                    MetaText.Text = shown;
+                    MetaText.Visibility = Visibility.Visible;
                 }
 
-                // 音频（无视频轨）时显示内嵌封面
+                // 音频（无视频轨）显示内嵌封面
                 if (_mp != null && _mp.VideoTrackCount <= 0)
                 {
-                    var art = _media.Meta(MetadataType.ArtworkURL);
-                    if (!string.IsNullOrEmpty(art))
-                    {
-                        // ArtworkURL 为 file:/// URI 形式，需转本地路径
-                        string local = art;
-                        try { local = new Uri(art).LocalPath; } catch { }
-                        TryShowCover(local);
-                    }
+                    CoverArtService.ShowCover(_coverImage, _media.Meta(MetadataType.ArtworkURL));
                 }
             });
         }
 
-        /// <summary>
-        /// 显示封面（libvlc 导出 artwork 可能晚于 ParsedChanged 落盘：轮询几次）。
-        /// </summary>
-        private void TryShowCover(string localPath)
-        {
-            var attempts = 5;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            timer.Tick += (s, e) =>
-            {
-                if (LoadCover(localPath) || --attempts <= 0)
-                {
-                    timer.Stop();
-                }
-            };
-            timer.Start();
-        }
-
-        private bool LoadCover(string localPath)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath)) return false;
-                var bmp = new System.Windows.Media.Imaging.BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                bmp.UriSource = new Uri(localPath);
-                bmp.EndInit();
-                bmp.Freeze();
-                _coverImage.Source = bmp;
-                _coverImage.Visibility = Visibility.Visible;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        // ---------- 播放状态事件 ----------
 
         private void OnPlaying(object sender, EventArgs e)
         {
@@ -230,26 +187,17 @@ namespace UniversalConvert.Plugin.VlcVideo
                     ProgressSlider.IsEnabled = true;
                 }
             });
-            LoadStreamInfoAsync();
-            LoadBitrateTimelineAsync();
+            StartMediaInfo();
         }
 
-        private void OnPaused(object sender, EventArgs e)
-        {
-            _playing = false;
-            OnUi(() => PlayPauseButton.Content = "播放");
-        }
+        private void OnPaused(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
+        private void OnStopped(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
+        private void OnEndReached(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
 
-        private void OnStopped(object sender, EventArgs e)
+        private void OnPlaybackStateChanged(bool playing)
         {
-            _playing = false;
-            OnUi(() => PlayPauseButton.Content = "播放");
-        }
-
-        private void OnEndReached(object sender, EventArgs e)
-        {
-            _playing = false;
-            OnUi(() => PlayPauseButton.Content = "播放");
+            _playing = playing;
+            OnUi(() => PlayPauseButton.Content = playing ? "暂停" : "播放");
         }
 
         private void OnLengthChanged(object sender, MediaPlayerLengthChangedEventArgs e)
@@ -274,31 +222,32 @@ namespace UniversalConvert.Plugin.VlcVideo
                 {
                     ProgressSlider.Value = seconds;
                 }
-                UpdateTimeText(e.Time / 1000.0);
-                // 动态码率实时刷新（kHz/声道保持静态）
-                if (InfoText != null)
-                {
-                    var br = CurrentBitrateKbps();
-                    InfoText.Text = (br > 0 ? string.Format("{0:0} kbps", br) : "—") + _staticInfoSuffix;
-                }
+                UpdateTimeText(seconds);
             });
+        }
+
+        // ---------- 流信息（码率/采样率/声道） ----------
+
+        private void StartMediaInfo()
+        {
+            if (_mediaInfo != null) return;
+            var plugin = PluginRef?.Target as VlcVideoPlugin;
+            var ffprobe = plugin?.Context?.FindTool("ffprobe");
+            if (string.IsNullOrEmpty(ffprobe)) return;
+
+            _mediaInfo = new MediaInfoService(
+                ffprobe, _filePath,
+                () => _mp != null ? _mp.Time / 1000.0 : 0.0,
+                text => OnUi(() => { if (InfoText != null) InfoText.Text = text; }));
+            _mediaInfo.Start();
         }
 
         private void OnInfoTimerTick(object sender, EventArgs e)
         {
-            // 独立轮询刷新流信息（不依赖 TimeChanged 事件链）
-            if (InfoText != null)
-            {
-                try
-                {
-                    var br = CurrentBitrateKbps();
-                    InfoText.Text = (br > 0 ? string.Format("{0:0} kbps", br) : "—") + _staticInfoSuffix;
-                }
-                catch { }
-            }
+            _mediaInfo?.Refresh();
         }
 
-        private void OnTimerTick(object sender, EventArgs e)
+        private void OnUiTimerTick(object sender, EventArgs e)
         {
             if (!_seeking && _mp != null)
             {
@@ -315,90 +264,6 @@ namespace UniversalConvert.Plugin.VlcVideo
             TimeText.Text = string.Format("{0:hh\\:mm\\:ss} / {1:hh\\:mm\\:ss}", pos, total);
         }
 
-
-        /// <summary>流信息：码率（kbps）/ 采样率（kHz）/ 声道。LibVLCSharp 3.x 无实时统计 API，
-        /// 用宿主的 ffprobe 一次性探测；未知值显示 —。</summary>
-        private void LoadStreamInfoAsync()
-        {
-            var plugin = _pluginRef?.Target as VlcVideoPlugin;
-            var ffprobe = plugin?.Context?.FindTool("ffprobe");
-            LogDebug("ffprobe 路径: " + (ffprobe ?? "(未找到)"));
-            if (string.IsNullOrEmpty(ffprobe) || InfoText == null)
-            {
-                return;
-            }
-
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = ffprobe,
-                    Arguments = "-v error -select_streams a:0 -show_entries stream=bit_rate,sample_rate,channels " +
-                                "-of default=noprint_wrappers=1 " + Quote(_filePath),
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true
-                };
-
-                var task = System.Threading.Tasks.Task.Run(() =>
-                {
-                    using (var proc = System.Diagnostics.Process.Start(psi))
-                    {
-                        if (proc == null) return string.Empty;
-                        var text = proc.StandardOutput.ReadToEnd();
-                        proc.WaitForExit(5000);
-                        LogDebug("ffprobe exit=" + proc.ExitCode + " 输出=[" + text + "]");
-                        return text;
-                    }
-                });
-
-                _ = task.ContinueWith(t =>
-                {
-                    var text = t.Result ?? string.Empty;
-                    var values = new System.Collections.Generic.Dictionary<string, string>();
-                    foreach (var line in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var eq = line.IndexOf('=');
-                        if (eq > 0)
-                        {
-                            values[line.Substring(0, eq)] = line.Substring(eq + 1);
-                        }
-                    }
-
-                    string bitrate = null, sampleRate = null, channels = null;
-                    values.TryGetValue("bit_rate", out bitrate);
-                    values.TryGetValue("sample_rate", out sampleRate);
-                    values.TryGetValue("channels", out channels);
-
-                    var parts = new System.Collections.Generic.List<string>();
-                    long br;
-                    long.TryParse(bitrate, out br);
-                    _staticBitrateKbps = br > 0 ? br / 1000f : -1;
-                    long sr;
-                    long.TryParse(sampleRate, out sr);
-                    parts.Add(sr > 0 ? string.Format("{0:0.#} kHz", sr / 1000.0) : "—");
-                    long ch;
-                    long.TryParse(channels, out ch);
-                    if (ch == 1) parts.Add("单声道");
-                    else if (ch == 2) parts.Add("立体声");
-                    else if (ch > 2) parts.Add(string.Format("{0}声道", ch));
-                    else parts.Add("—");
-
-                    _staticInfoSuffix = parts.Count > 0 ? " · " + string.Join(" · ", parts) : "";
-                    var text1 = (CurrentBitrateKbps() > 0 ? string.Format("{0:0} kbps", CurrentBitrateKbps()) : "—") + _staticInfoSuffix;
-                    LogDebug(string.Format("解析完成: staticBitrate={0:0.#} suffix=[{1}] 显示=[{2}]",
-                        _staticBitrateKbps, _staticInfoSuffix, text1));
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        try { if (InfoText != null) InfoText.Text = text1; } catch { }
-                    }));
-                }, System.Threading.Tasks.TaskScheduler.Default);
-            }
-            catch
-            {
-                // 探测失败：保持 — 不打扰
-            }
-        }
         // ---------- 控制 ----------
 
         private void OnPlayPause(object sender, RoutedEventArgs e)
@@ -428,153 +293,14 @@ namespace UniversalConvert.Plugin.VlcVideo
             TimeText.Text = string.Empty;
         }
 
-        /// <summary>当前显示的码率（kbps）：ffprobe 包级时间线动态（1s 滑动窗口，真实 VBR），
-        /// 不可用回退平均码率。</summary>
-        private float CurrentBitrateKbps()
-        {
-            try
-            {
-                if (_timeline != null && _mp != null)
-                {
-                    var br = _timeline.GetBitrateKbps(_mp.Time / 1000.0);
-                    if (br > 0) return br;
-                }
-            }
-            catch { }
-            return _staticBitrateKbps;
-        }
-
-                private DateTime _lastDebugLog;
-        /// <summary>debug 日志（节流：至少间隔 3 秒，避免刷屏）。</summary>
-        /// <summary>加载 ffprobe 包级时间线（移植自内置 AudioPlayerWindow：packet pts_time/size
-        /// → 累计字节曲线 → 按播放时间查 1s 滑动瞬时码率）。</summary>
-        private async void LoadBitrateTimelineAsync()
-        {
-            var plugin = _pluginRef?.Target as VlcVideoPlugin;
-            var ffprobe = plugin?.Context?.FindTool("ffprobe");
-            if (string.IsNullOrEmpty(ffprobe)) return;
-
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = ffprobe,
-                    Arguments = "-v error -select_streams a:0 -show_entries packet=pts_time,size -of json " + Quote(_filePath),
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true
-                };
-                var text = await System.Threading.Tasks.Task.Run(() =>
-                {
-                    using (var proc = System.Diagnostics.Process.Start(psi))
-                    {
-                        if (proc == null) return string.Empty;
-                        var t = proc.StandardOutput.ReadToEnd();
-                        proc.WaitForExit(10000);
-                        return t;
-                    }
-                });
-
-                var tl = BitrateTimeline.Parse(text);
-                LogDebug("码率时间线包数: " + (tl == null ? 0 : tl.Count));
-                if (tl != null && tl.Count > 0)
-                {
-                    Dispatcher.BeginInvoke(new Action(() => { try { _timeline = tl; } catch { } }));
-                }
-            }
-            catch { }
-        }
-
-        /// <summary>ffprobe 包级码率时间线（复制内置实现：pts_time/size 累计，1 秒滑动窗口估算瞬时码率）。</summary>
-        private sealed class BitrateTimeline
-        {
-            private readonly List<double> _times = new List<double>();
-            private readonly List<long> _cumBytes = new List<long>();
-
-            public int Count => _times.Count;
-            public bool IsValid => _times.Count > 0;
-
-            public void Add(double time, long cumulativeBytes)
-            {
-                _times.Add(time);
-                _cumBytes.Add(cumulativeBytes);
-            }
-
-            public int GetBitrateKbps(double seconds)
-            {
-                if (!IsValid) return 0;
-                int end = FindIndex(seconds);
-                if (end < 0) return 0;
-                int start = FindIndex(seconds - 1.0);
-                if (start < 0) start = 0;
-                double dt = _times[end] - _times[start];
-                long db = _cumBytes[end] - _cumBytes[start];
-                if (dt <= 0) return 0;
-                return (int)(db * 8.0 / dt / 1000.0);
-            }
-
-            private int FindIndex(double seconds)
-            {
-                int lo = 0, hi = _times.Count - 1, ans = -1;
-                while (lo <= hi)
-                {
-                    int mid = (lo + hi) / 2;
-                    if (_times[mid] <= seconds) { ans = mid; lo = mid + 1; }
-                    else hi = mid - 1;
-                }
-                return ans;
-            }
-
-            /// <summary>从 ffprobe JSON 输出解析（packet=pts_time,size）。</summary>
-            public static BitrateTimeline Parse(string json)
-            {
-                if (string.IsNullOrEmpty(json)) return null;
-                var timeline = new BitrateTimeline();
-                var regex = new System.Text.RegularExpressions.Regex(
-                    "\"pts_time\":\\s*([0-9.]+)[^}]*?\"size\":\\s*(\\d+)",
-                    System.Text.RegularExpressions.RegexOptions.Singleline);
-                long cum = 0;
-                foreach (System.Text.RegularExpressions.Match m in regex.Matches(json))
-                {
-                    double time;
-                    long size;
-                    if (!double.TryParse(m.Groups[1].Value,
-                            System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture, out time)) continue;
-                    if (!long.TryParse(m.Groups[2].Value, out size)) continue;
-                    cum += size;
-                    timeline.Add(time, cum);
-                }
-                return timeline;
-            }
-        }
-
-        private void LogDebug(string message)
-        {
-            var now = DateTime.Now;
-            if ((now - _lastDebugLog).TotalSeconds < 3) return;
-            _lastDebugLog = now;
-            try
-            {
-                var plugin = _pluginRef?.Target as VlcVideoPlugin;
-                plugin?.Log("VLC debug: " + message);
-            }
-            catch { }
-        }
-
-        private static string Quote(string path)
-        {
-            return "\"" + path.Replace("\"", "\\\"") + "\"";
-        }
-
         private void OnClose(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
-        // ---------- 进度条：拖拽时临时暂停，VLC 原生渲染 seek 帧 ----------
+        // ---------- 进度条：拖拽临时暂停，VLC 原生渲染 seek 帧 ----------
 
-        private void OnProgressPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void OnProgressPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             _seeking = true;
             _wasPlayingBeforeSeek = _playing;
@@ -586,35 +312,31 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
         }
 
-        private void OnProgressPreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void OnProgressPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             _seeking = false;
-            if (_mp != null)
+            if (_mp == null) return;
+            _mp.Time = (long)(ProgressSlider.Value * 1000);
+            if (_wasPlayingBeforeSeek)
             {
-                _mp.Time = (long)(ProgressSlider.Value * 1000);
-                if (_wasPlayingBeforeSeek)
-                {
-                    _mp.Play();
-                    _playing = true;
-                    PlayPauseButton.Content = "暂停";
-                }
+                _mp.Play();
+                _playing = true;
+                PlayPauseButton.Content = "暂停";
             }
         }
 
         private void OnProgressChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_seeking || _mp == null) return;
-            // 拖动中：VLC 暂停态可直接渲染 seek 帧
             _mp.Time = (long)(ProgressSlider.Value * 1000);
             UpdateTimeText(ProgressSlider.Value);
         }
 
-        // ---------- 画面：双击任意位置播放/暂停，左右 1/3 单击 ±5 秒 ----------
-        // 单击延迟 300ms 执行（等待可能的双击）；300ms 内再次点击 → 播放/暂停
+        // ---------- 画面快捷操作：双击播放/暂停，左右 1/3 单击 ±5 秒 ----------
 
-        private void OnVideoMouseLeftDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void OnVideoMouseLeftDown(object sender, MouseButtonEventArgs e)
         {
-            if (_mp == null || VideoHost.ActualWidth <= 0) return;
+            if (_mp == null || _videoHost.ActualWidth <= 0) return;
 
             if (_pendingClick && _clickTimer.IsEnabled)
             {
@@ -625,8 +347,8 @@ namespace UniversalConvert.Plugin.VlcVideo
                 return;
             }
 
-            var x = e.GetPosition(VideoHost).X;
-            var region = x / VideoHost.ActualWidth;
+            var x = e.GetPosition(_videoHost).X;
+            var region = x / _videoHost.ActualWidth;
             _pendingClick = false;
             _pendingSeekSeconds = region < 1.0 / 3.0 ? -5 : region > 2.0 / 3.0 ? 5 : 0;
             StartClickTimer();
@@ -664,7 +386,7 @@ namespace UniversalConvert.Plugin.VlcVideo
             UpdateTimeText(target / 1000.0);
         }
 
-        // ---------- 音量（指数曲线，人耳对数感知） ----------
+        // ---------- 音量（指数曲线） ----------
 
         private void ApplyVolume()
         {
@@ -694,8 +416,9 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         private void OnClosed(object sender, EventArgs e)
         {
-            _timer.Stop();
+            _uiTimer.Stop();
             _infoTimer.Stop();
+            _clickTimer.Stop();
             try
             {
                 if (_mp != null)

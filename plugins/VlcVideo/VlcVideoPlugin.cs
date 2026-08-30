@@ -17,7 +17,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         public string Id => "com.universalconvert.vlcvideo";
         public string Name => "VLC 播放器";
         public string Description => "媒体预览增强：基于 VLC 的全格式播放（视频 mkv/webm/hevc/rmvb 及全部音频），拖拽进度条原生帧预览";
-        public string Version => "1.3.1";
+        public string Version => "1.4.0";
         public string MinAppVersion => "2.4.0-dev.9";
         public string MaxAppVersion => null;
         public string Author => "UniversalConvert";
@@ -54,7 +54,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         public bool ShowPreviewWithName(string filePath, string displayName)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return false;
-            VlcPreviewWindow._pluginRef = new WeakReference(this);
+            VlcPreviewWindow.PluginRef = new WeakReference(this);
             try
             {
                 // 非模态：预览窗口不阻塞主界面（构造异常视为接管失败，回退内置预览）
