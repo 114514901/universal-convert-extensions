@@ -37,6 +37,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private readonly DispatcherTimer _clickTimer = new DispatcherTimer();
 
         private bool _ready;
+        private bool _ended;
         private bool _playing;
         private bool _seeking;
         private bool _wasPlayingBeforeSeek;
@@ -203,7 +204,17 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         private void OnPaused(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
         private void OnStopped(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
-        private void OnEndReached(object sender, EventArgs e) { OnPlaybackStateChanged(false); }
+        private void OnEndReached(object sender, EventArgs e)
+        {
+            _ended = true;
+            _playing = false;
+            OnUi(() =>
+            {
+                PlayPauseButton.Content = "播放";
+                ProgressSlider.Value = 0;
+                UpdateTimeText(0);
+            });
+        }
 
         private void OnPlaybackStateChanged(bool playing)
         {
@@ -288,6 +299,12 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
             else
             {
+                if (_ended)
+                {
+                    // 播放到末尾后需重置进度，否则 Play() 停在结尾无效
+                    _ended = false;
+                    _mp.Time = 0;
+                }
                 _mp.Play();
                 _playing = true;
                 PlayPauseButton.Content = "暂停";
@@ -297,6 +314,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private void OnStop(object sender, RoutedEventArgs e)
         {
             if (_mp == null) return;
+            _ended = false;
             _mp.Stop();
             _playing = false;
             PlayPauseButton.Content = "播放";
