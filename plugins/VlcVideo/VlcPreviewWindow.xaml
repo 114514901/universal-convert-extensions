@@ -20,7 +20,7 @@
                        TextTrimming="CharacterEllipsis" Margin="0,2,0,0" Visibility="Collapsed"/>
         </StackPanel>
 
-        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#111111">
+        <Border x:Name="VideoBorder" Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#111111">
             <!-- VideoView 由代码动态创建（XAML 引用扩展目录外的程序集在 BAML 加载时无法解析） -->
             <Grid x:Name="HostGrid" Background="#111111"/>
         </Border>

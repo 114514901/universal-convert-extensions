@@ -64,6 +64,9 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             try
             {
+                // 深色适配：扩展自行用宿主 IsDarkTheme API 管理（主程序不介入扩展窗口）
+                ApplyTheme();
+
                 // 先建视频宿主（窗口骨架立即显示），再后台初始化 libvlc，避免首次冷启动卡 UI
                 BuildMediaElements();
                 await System.Threading.Tasks.Task.Run(() =>
@@ -80,6 +83,36 @@ namespace UniversalConvert.Plugin.VlcVideo
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 Close();
             }
+        }
+
+        /// <summary>按宿主主题（IPluginContext.IsDarkTheme）切换窗口背景/次要文字/边框颜色。</summary>
+        private void ApplyTheme()
+        {
+            try
+            {
+                var dark = (PluginRef?.Target as VlcVideoPlugin)?.Context?.IsDarkTheme ?? false;
+                Background = new System.Windows.Media.SolidColorBrush(
+                    dark ? System.Windows.Media.Color.FromRgb(0x1F, 0x1F, 0x1F)
+                         : System.Windows.Media.Color.FromRgb(0xF3, 0xF3, 0xF3));
+
+                var secondary = ColorBrush(dark ? "#AAAAAA" : "#666666");
+                var tertiary = ColorBrush(dark ? "#888888" : "#999999");
+                if (MetaText != null) MetaText.Foreground = tertiary;
+                if (TimeText != null) TimeText.Foreground = secondary;
+                if (InfoText != null) InfoText.Foreground = tertiary;
+                if (VolumeText != null) VolumeText.Foreground = secondary;
+                if (VideoBorder != null) VideoBorder.BorderBrush = ColorBrush(dark ? "#3F3F3F" : "#DDDDDD");
+            }
+            catch
+            {
+                // 主题适配失败不影响播放
+            }
+        }
+
+        private static System.Windows.Media.SolidColorBrush ColorBrush(string hex)
+        {
+            return new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
         }
 
         // ---------- 初始化 ----------
