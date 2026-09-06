@@ -214,9 +214,12 @@ namespace UniversalConvert.Plugin.VlcVideo
                     MetaText.Visibility = Visibility.Visible;
                 }
 
-                // 音频（无视频轨）显示内嵌封面
+                // 音频（无视频轨）显示内嵌封面。
+                // VideoView 是 HwndHost（airspace：原生表面恒在 WPF 元素之上），缩放窗口时
+                // 会重建原生表面盖住封面导致封面消失——音频无视频画面，直接隐藏 VideoView
                 if (_mp != null && _mp.VideoTrackCount <= 0)
                 {
+                    _videoHost.Visibility = Visibility.Collapsed;
                     CoverArtService.ShowCover(_coverImage, _media.Meta(MetadataType.ArtworkURL));
                 }
             });
