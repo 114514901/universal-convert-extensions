@@ -67,6 +67,9 @@ namespace UniversalConvert.Plugin.VlcVideo
                 // 深色适配：扩展自行用宿主 IsDarkTheme API 管理（主程序不介入扩展窗口）
                 ApplyTheme();
 
+                // tooltip 定位目标在代码里设置（XAML 里 x:Reference 在动态加载程序集中有解析风险）
+                SeekTooltip.PlacementTarget = ProgressSlider;
+
                 // 先建视频宿主（窗口骨架立即显示），再后台初始化 libvlc，避免首次冷启动卡 UI
                 BuildMediaElements();
                 await System.Threading.Tasks.Task.Run(() =>
@@ -79,6 +82,7 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
             catch (Exception ex)
             {
+                try { (PluginRef?.Target as VlcVideoPlugin)?.Log("VLC 播放器初始化失败：" + ex); } catch { }
                 MessageBox.Show("VLC 播放器初始化失败：" + ex.Message, "VLC 播放器",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 Close();

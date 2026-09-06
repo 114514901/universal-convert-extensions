@@ -49,7 +49,7 @@
         </StackPanel>
 
         <!-- 拖动进度条时在鼠标上方显示该位置时长 -->
-        <Popup x:Name="SeekTooltip" Placement="Relative" PlacementTarget="{x:Reference ProgressSlider}"
+        <Popup x:Name="SeekTooltip" Placement="Relative"
                AllowsTransparency="True" IsHitTestVisible="False">
             <Border Background="#E6000000" CornerRadius="3" Padding="5,2">
                 <TextBlock x:Name="SeekTooltipText" Foreground="White" FontSize="12"/>
