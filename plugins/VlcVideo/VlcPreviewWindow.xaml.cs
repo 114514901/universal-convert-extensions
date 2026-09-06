@@ -337,9 +337,10 @@ namespace UniversalConvert.Plugin.VlcVideo
             {
                 if (_ended)
                 {
-                    // 播放到末尾后需重置进度，否则 Play() 停在结尾无效
+                    // 播放到末尾后 media 停在 Ended 状态，仅设 Time=0 不够（Play 无效）——
+                    // 需 Stop 归位，再从头播放（所见即所得，无需先手动点「停止」）
                     _ended = false;
-                    _mp.Time = 0;
+                    _mp.Stop();
                 }
                 _mp.Play();
                 _playing = true;
@@ -361,6 +362,16 @@ namespace UniversalConvert.Plugin.VlcVideo
         private void OnClose(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        /// <summary>空格键：播放/暂停（焦点在按钮上时 PreviewKeyDown 先拦截，避免触发按钮点击）。</summary>
+        private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Space)
+            {
+                OnPlayPause(sender, e);
+                e.Handled = true;
+            }
         }
 
         // ---------- 进度条：拖拽临时暂停，VLC 原生渲染 seek 帧 ----------
