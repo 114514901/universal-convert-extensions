@@ -389,11 +389,13 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _playing = false;
                 PlayPauseButton.Content = "播放";
             }
+            UpdateSeekTooltip(e);
         }
 
         private void OnProgressPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             _seeking = false;
+            SeekTooltip.IsOpen = false;
             if (_mp == null) return;
             _mp.Time = (long)(ProgressSlider.Value * 1000);
             if (_wasPlayingBeforeSeek)
@@ -402,6 +404,31 @@ namespace UniversalConvert.Plugin.VlcVideo
                 _playing = true;
                 PlayPauseButton.Content = "暂停";
             }
+        }
+
+        /// <summary>拖动进度条时在鼠标上方显示该位置时长。</summary>
+        private void OnProgressPreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_seeking) UpdateSeekTooltip(e);
+        }
+
+        private void UpdateSeekTooltip(MouseEventArgs e)
+        {
+            if (ProgressSlider.ActualWidth <= 0) return;
+            var pos = e.GetPosition(ProgressSlider);
+            var ratio = Math.Max(0.0, Math.Min(1.0, pos.X / ProgressSlider.ActualWidth));
+            var seconds = ratio * ProgressSlider.Maximum;
+            SeekTooltipText.Text = FormatSeekTime(seconds);
+            SeekTooltip.HorizontalOffset = pos.X - 18;
+            SeekTooltip.VerticalOffset = pos.Y - 34;
+            SeekTooltip.IsOpen = true;
+        }
+
+        private static string FormatSeekTime(double seconds)
+        {
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0) seconds = 0;
+            var t = TimeSpan.FromSeconds(seconds);
+            return t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss");
         }
 
         private void OnProgressChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -487,6 +514,14 @@ namespace UniversalConvert.Plugin.VlcVideo
         private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             ApplyVolume();
+        }
+
+        /// <summary>悬停在音量条上滚动滚轮调节音量（步长 5%）。</summary>
+        private void OnVolumeMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var delta = e.Delta > 0 ? 0.05 : -0.05;
+            VolumeSlider.Value = Math.Max(0.0, Math.Min(1.0, VolumeSlider.Value + delta));
+            e.Handled = true;
         }
 
         private static double VolumeToAmplitude(double sliderValue)

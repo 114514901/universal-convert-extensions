@@ -29,6 +29,7 @@
                 Margin="4,10,4,0" VerticalAlignment="Center" IsEnabled="False"
                 IsMoveToPointEnabled="True"
                 PreviewMouseDown="OnProgressPreviewMouseDown" PreviewMouseUp="OnProgressPreviewMouseUp"
+                PreviewMouseMove="OnProgressPreviewMouseMove"
                 ValueChanged="OnProgressChanged"/>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="4,10,4,0">
@@ -39,11 +40,20 @@
             <TextBlock x:Name="InfoText" Text="—" VerticalAlignment="Center" Foreground="#888888" FontSize="12" Margin="0,0,16,0"/>
             <TextBlock Text="音量" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <Slider x:Name="VolumeSlider" Width="120" Minimum="0" Maximum="1" Value="1"
-                    VerticalAlignment="Center" ValueChanged="OnVolumeChanged"/>
+                    VerticalAlignment="Center" ValueChanged="OnVolumeChanged"
+                    MouseWheel="OnVolumeMouseWheel"/>
             <TextBlock x:Name="VolumeText" VerticalAlignment="Center" Margin="8,0,0,0"
                        Foreground="#666666" FontSize="12"/>
             <Button Content="关闭" Padding="16,4" Margin="24,0,0,0"
                     HorizontalAlignment="Right" Click="OnClose"/>
         </StackPanel>
+
+        <!-- 拖动进度条时在鼠标上方显示该位置时长 -->
+        <Popup x:Name="SeekTooltip" Placement="Relative" PlacementTarget="{x:Reference ProgressSlider}"
+               AllowsTransparency="True" IsHitTestVisible="False">
+            <Border Background="#E6000000" CornerRadius="3" Padding="5,2">
+                <TextBlock x:Name="SeekTooltipText" Foreground="White" FontSize="12"/>
+            </Border>
+        </Popup>
     </Grid>
 </Window>
