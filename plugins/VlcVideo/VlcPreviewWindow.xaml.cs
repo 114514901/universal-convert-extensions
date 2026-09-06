@@ -19,6 +19,8 @@ namespace UniversalConvert.Plugin.VlcVideo
     {
         private static readonly object InitializeLock = new object();
         private static bool _libVlcInitialized;
+        private static readonly object LibVlcLock = new object();
+        private static LibVLC _sharedLibVlc;
 
         internal static WeakReference PluginRef;
 
@@ -58,12 +60,17 @@ namespace UniversalConvert.Plugin.VlcVideo
             _infoTimer.Tick += OnInfoTimerTick;
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private async void OnLoaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                EnsureLibVlcInitialized();
+                // 先建视频宿主（窗口骨架立即显示），再后台初始化 libvlc，避免首次冷启动卡 UI
                 BuildMediaElements();
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    EnsureLibVlcInitialized();
+                    GetSharedLibVlc(); // 预热共享实例（首次 new LibVLC 最慢）
+                });
                 StartPlayback();
                 _ready = true;
             }
@@ -89,6 +96,35 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
         }
 
+        /// <summary>获取进程级共享 LibVLC 实例：每次打开窗口都 new+Dispose 是「每次开都慢」的主因，
+        /// 改为单例复用，窗口关闭只释放 Media/MediaPlayer，LibVLC 保留到进程退出。</summary>
+        private static LibVLC GetSharedLibVlc()
+        {
+            if (_sharedLibVlc != null) return _sharedLibVlc;
+            lock (LibVlcLock)
+            {
+                if (_sharedLibVlc == null)
+                {
+                    _sharedLibVlc = new LibVLC();
+                }
+                return _sharedLibVlc;
+            }
+        }
+
+        /// <summary>后台预热：加载 libvlc 原生库 + 预建共享实例，把首次打开预览的冷启动成本提前。</summary>
+        public static void Warmup()
+        {
+            try
+            {
+                EnsureLibVlcInitialized();
+                GetSharedLibVlc();
+            }
+            catch
+            {
+                // 预热失败不影响后续（首次打开时仍会初始化）
+            }
+        }
+
         private void BuildMediaElements()
         {
             // VideoView 代码动态创建（XAML 引用扩展目录程序集在 BAML 加载时无法解析）
@@ -109,7 +145,7 @@ namespace UniversalConvert.Plugin.VlcVideo
 
         private void StartPlayback()
         {
-            _libVlc = new LibVLC();
+            _libVlc = GetSharedLibVlc();
             _mp = new MediaPlayer(_libVlc);
             _videoHost.MediaPlayer = _mp;
 
@@ -501,11 +537,8 @@ namespace UniversalConvert.Plugin.VlcVideo
                     _media.Dispose();
                     _media = null;
                 }
-                if (_libVlc != null)
-                {
-                    _libVlc.Dispose();
-                    _libVlc = null;
-                }
+                // LibVLC 为进程级共享实例，不在此释放（下次打开复用，避免重复初始化）
+                _libVlc = null;
             }
             catch { }
         }
