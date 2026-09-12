@@ -30,14 +30,14 @@
       "id": "com.universalconvert.midi",
       "name": "MIDI",
       "description": "MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a），FluidSynth + GeneralUser GS 音色库随包分发；内置预览渲染",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "UniversalConvert",
       "minAppVersion": "2.0.2-dev.7",
       "maxAppVersion": null,
       "homepage": "https://www.fluidsynth.org/",
-      "size": 31144953,
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.2/MIDI-1.0.2.zip",
-      "sha256": "616f6c974892fb93f70a5c79e2d94d78cd6b576f3bef10ce559a23c21a25b997"
+      "size": 31145062,
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/MIDI-1.0.3/MIDI-1.0.3.zip",
+      "sha256": "9d2d4774743bae2333706bf66bc09f3160d6bf7441c94ed57f3dd4c796062103"
     },
     {
       "id": "com.universalconvert.imagemagick",
