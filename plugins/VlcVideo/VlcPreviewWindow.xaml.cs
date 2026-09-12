@@ -434,13 +434,17 @@ namespace UniversalConvert.Plugin.VlcVideo
             _seeking = false;
             SeekTooltip.IsOpen = false;
             if (_mp == null) return;
-            _mp.Time = (long)(ProgressSlider.Value * 1000);
+
+            var target = (long)(ProgressSlider.Value * 1000);
             if (_wasPlayingBeforeSeek)
             {
+                // 先恢复播放再设时间：暂停态设置的 Time 会被随后的 Play 重置回暂停前位置，
+                // 表现为「进度过去一瞬间又弹回原位置继续播」（长按尤其明显）
                 _mp.Play();
                 _playing = true;
                 PlayPauseButton.Content = "暂停";
             }
+            _mp.Time = target;
         }
 
         /// <summary>拖动进度条时在鼠标上方显示该位置时长。</summary>
