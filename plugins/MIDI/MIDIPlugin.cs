@@ -25,7 +25,7 @@ namespace UniversalConvert.Plugin.MIDI
         public string Id => "com.universalconvert.midi";
         public string Name => "MIDI";
         public string Description => "MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a），FluidSynth + GeneralUser GS 音色库随包分发";
-        public string Version => "1.0.2";
+        public string Version => "1.0.3";
 
         /// <summary>需要 IPreviewProvider 与加载时 MinAppVersion 校验（主程序 2.0.2-dev.7 起）。</summary>
         public string MinAppVersion => "2.0.2-dev.7";
@@ -297,9 +297,12 @@ namespace UniversalConvert.Plugin.MIDI
         private static string BuildRenderArguments(string soundFont, string inputPath, string wavPath, string sampleRate, string gain)
         {
             // -F 渲染到文件；-i 非交互；-r 采样率；-g 音量增益（FluidSynth 原默认 0.2 偏小，文件渲染推荐 0.5）
+            // -o synth.cpu-cores：FluidSynth 默认只用 1 核合成，多核可显著降低渲染耗时（上限 8，避免线程调度开销反噬）
+            var cores = Math.Max(1, Math.Min(Environment.ProcessorCount, 8));
             return "-F " + ProcessRunner.Quote(wavPath)
                 + " -i -r " + sampleRate
                 + " -g " + gain
+                + " -o synth.cpu-cores=" + cores
                 + " " + ProcessRunner.Quote(soundFont)
                 + " " + ProcessRunner.Quote(inputPath);
         }
