@@ -420,12 +420,8 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             _seeking = true;
             _wasPlayingBeforeSeek = _playing;
-            if (_playing)
-            {
-                _mp.Pause();
-                _playing = false;
-                PlayPauseButton.Content = "播放";
-            }
+            // 不暂停：暂停态设置的时间会被随后的恢复播放重置，长按后表现为
+            // 「进度过去一瞬间又弹回原位继续播」。全程保持播放态 seek，避免 Pause/Play 与 Time 互相覆盖。
             UpdateSeekTooltip(e);
         }
 
@@ -436,15 +432,8 @@ namespace UniversalConvert.Plugin.VlcVideo
             if (_mp == null) return;
 
             var target = (long)(ProgressSlider.Value * 1000);
-            if (_wasPlayingBeforeSeek)
-            {
-                // 先恢复播放再设时间：暂停态设置的 Time 会被随后的 Play 重置回暂停前位置，
-                // 表现为「进度过去一瞬间又弹回原位置继续播」（长按尤其明显）
-                _mp.Play();
-                _playing = true;
-                PlayPauseButton.Content = "暂停";
-            }
             _mp.Time = target;
+            Log($"进度条松开: slider={ProgressSlider.Value:0.###}s, seek={target}ms");
         }
 
         /// <summary>拖动进度条时在鼠标上方显示该位置时长。</summary>
@@ -470,6 +459,12 @@ namespace UniversalConvert.Plugin.VlcVideo
             if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0) seconds = 0;
             var t = TimeSpan.FromSeconds(seconds);
             return t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"mm\:ss");
+        }
+
+        /// <summary>写插件日志（诊断用）。</summary>
+        private static void Log(string message)
+        {
+            try { (PluginRef?.Target as VlcVideoPlugin)?.Log(message); } catch { }
         }
 
         private void OnProgressChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
