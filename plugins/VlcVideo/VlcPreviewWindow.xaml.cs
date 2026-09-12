@@ -43,6 +43,8 @@ namespace UniversalConvert.Plugin.VlcVideo
         private bool _playing;
         private bool _seeking;
         private bool _wasPlayingBeforeSeek;
+        /// <summary>恢复播放后待补的定位（毫秒）；-1 表示无。</summary>
+        private long _pendingSeekMs = -1;
         private bool _pendingClick;
         private int _pendingSeekSeconds;
 
@@ -274,6 +276,19 @@ namespace UniversalConvert.Plugin.VlcVideo
                     ProgressSlider.Maximum = _mp.Length / 1000.0;
                     ProgressSlider.IsEnabled = true;
                 }
+
+                // 已真正进入播放态：补上松手时被恢复播放吃掉的那次定位
+                if (_pendingSeekMs >= 0 && _mp != null)
+                {
+                    var ms = _pendingSeekMs;
+                    _pendingSeekMs = -1;
+                    try
+                    {
+                        _mp.Time = ms;
+                        Log($"补 seek 完成: {ms}ms");
+                    }
+                    catch { }
+                }
             });
             StartMediaInfo();
         }
@@ -420,8 +435,13 @@ namespace UniversalConvert.Plugin.VlcVideo
         {
             _seeking = true;
             _wasPlayingBeforeSeek = _playing;
-            // 不暂停：暂停态设置的时间会被随后的恢复播放重置，长按后表现为
-            // 「进度过去一瞬间又弹回原位继续播」。全程保持播放态 seek，避免 Pause/Play 与 Time 互相覆盖。
+            // 拖动期间临时暂停（避免反复 seek 产生噪声/杂音），松手时再恢复并补一次定位
+            if (_playing)
+            {
+                _mp.Pause();
+                _playing = false;
+                PlayPauseButton.Content = "播放";
+            }
             UpdateSeekTooltip(e);
         }
 
@@ -432,8 +452,22 @@ namespace UniversalConvert.Plugin.VlcVideo
             if (_mp == null) return;
 
             var target = (long)(ProgressSlider.Value * 1000);
-            _mp.Time = target;
-            Log($"进度条松开: slider={ProgressSlider.Value:0.###}s, seek={target}ms");
+            if (_wasPlayingBeforeSeek)
+            {
+                // Play() 是异步的：这里立即设 Time 会被「恢复播放」重置回暂停前位置
+                // （表现为长按后「过去一瞬间又弹回原位继续播」）。
+                // 所以先记下目标，等 Playing 事件（真正进入播放态）再补一次 seek。
+                _pendingSeekMs = target;
+                _mp.Play();
+                _playing = true;
+                PlayPauseButton.Content = "暂停";
+                Log($"进度条松开: 待补 seek slider={ProgressSlider.Value:0.###}s target={target}ms");
+            }
+            else
+            {
+                _mp.Time = target;
+                Log($"进度条松开: 暂停态直接 seek slider={ProgressSlider.Value:0.###}s target={target}ms");
+            }
         }
 
         /// <summary>拖动进度条时在鼠标上方显示该位置时长。</summary>
