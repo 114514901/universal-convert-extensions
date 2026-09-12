@@ -121,14 +121,14 @@
       "id": "com.universalconvert.vlcvideo",
       "name": "VLC 播放器",
       "description": "媒体预览增强：基于 VLC 的全格式播放（视频 mkv/webm/hevc/rmvb 及全部音频），拖拽进度条原生帧预览",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "author": "UniversalConvert",
       "minAppVersion": "2.7.0-dev.1",
       "maxAppVersion": null,
       "homepage": "https://www.videolan.org/vlc/",
-      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/VlcVideo-1.5.0/VlcVideo-1.5.0.zip",
-      "size": 49286908,
-      "sha256": "976283b908717ca285090678fe63b745218f68cfc0f9a4708dc8a1a8da275d31"
+      "downloadUrl": "https://github.com/114514901/universal-convert-extensions/releases/download/VlcVideo-1.5.1/VlcVideo-1.5.1.zip",
+      "size": 49286969,
+      "sha256": "ed04dec559df370120ea47cfb1b182d7a635bb1b7b21d4e6df1cbdfecc4f0ab2"
     }
   ]
 }
