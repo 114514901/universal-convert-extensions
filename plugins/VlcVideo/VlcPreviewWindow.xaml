@@ -28,7 +28,7 @@
         <Slider x:Name="ProgressSlider" Grid.Row="2" Minimum="0" Maximum="1" Value="0"
                 Margin="4,10,4,0" VerticalAlignment="Center" IsEnabled="False"
                 IsMoveToPointEnabled="True"
-                PreviewMouseDown="OnProgressPreviewMouseDown" PreviewMouseUp="OnProgressPreviewMouseUp"
+                PreviewMouseUp="OnProgressPreviewMouseUp"
                 PreviewMouseMove="OnProgressPreviewMouseMove"
                 ValueChanged="OnProgressChanged"/>
 

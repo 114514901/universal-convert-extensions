@@ -43,6 +43,8 @@ namespace UniversalConvert.Plugin.VlcVideo
         private bool _playing;
         private bool _seeking;
         private bool _wasPlayingBeforeSeek;
+        /// <summary>最近一次主动定位的时间；VLC 的时间事件是异步的，静默期内不用它回写进度条。</summary>
+        private DateTime _lastSeekUtc = DateTime.MinValue;
         /// <summary>恢复播放后待补的定位（毫秒）；-1 表示无。</summary>
         private long _pendingSeekMs = -1;
         private bool _pendingClick;
@@ -55,6 +57,14 @@ namespace UniversalConvert.Plugin.VlcVideo
             _displayName = displayName;
             Title = "UniversalConvert";
             TitleText.Text = displayName ?? Path.GetFileName(filePath);
+
+            // 点轨道时 Slider 的类处理（IsMoveToPointEnabled 的 MoveToPoint）先执行并标记 Handled，
+            // XAML 绑定的实例 handler 会被跳过 —— 那样 _seeking 一直为 false，
+            // OnTimeChanged 就会持续把进度条写回旧位置（长按后松手 seek 回原处 = 回弹）。
+            ProgressSlider.AddHandler(
+                System.Windows.Input.Mouse.PreviewMouseDownEvent,
+                new System.Windows.Input.MouseButtonEventHandler(OnProgressPreviewMouseDown),
+                handledEventsToo: true);
 
             _uiTimer.Interval = TimeSpan.FromMilliseconds(200);
             _uiTimer.Tick += OnUiTimerTick;
@@ -284,6 +294,7 @@ namespace UniversalConvert.Plugin.VlcVideo
                     _pendingSeekMs = -1;
                     try
                     {
+                        _lastSeekUtc = DateTime.UtcNow;
                         _mp.Time = ms;
                         Log($"补 seek 完成: {ms}ms");
                     }
@@ -330,6 +341,8 @@ namespace UniversalConvert.Plugin.VlcVideo
             OnUi(() =>
             {
                 if (_seeking) return;
+                // 刚做过定位：VLC 的时间事件可能仍在报旧位置，静默期内不用它回写进度条
+                if ((DateTime.UtcNow - _lastSeekUtc).TotalMilliseconds < 1000) return;
                 var seconds = e.Time / 1000.0;
                 if (seconds >= 0 && ProgressSlider.Maximum > 0)
                 {
@@ -465,6 +478,7 @@ namespace UniversalConvert.Plugin.VlcVideo
             }
             else
             {
+                _lastSeekUtc = DateTime.UtcNow;
                 _mp.Time = target;
                 Log($"进度条松开: 暂停态直接 seek slider={ProgressSlider.Value:0.###}s target={target}ms");
             }
@@ -504,6 +518,7 @@ namespace UniversalConvert.Plugin.VlcVideo
         private void OnProgressChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_seeking || _mp == null) return;
+            _lastSeekUtc = DateTime.UtcNow;
             _mp.Time = (long)(ProgressSlider.Value * 1000);
             UpdateTimeText(ProgressSlider.Value);
         }
@@ -557,6 +572,7 @@ namespace UniversalConvert.Plugin.VlcVideo
             var target = _mp.Time + seconds * 1000L;
             if (target < 0) target = 0;
             if (_mp.Length > 0 && target > _mp.Length) target = _mp.Length;
+            _lastSeekUtc = DateTime.UtcNow;
             _mp.Time = target;
             ProgressSlider.Value = target / 1000.0;
             UpdateTimeText(target / 1000.0);
