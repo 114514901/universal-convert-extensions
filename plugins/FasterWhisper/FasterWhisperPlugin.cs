@@ -26,7 +26,7 @@ namespace UniversalConvert.Plugin.FasterWhisper
         public string Id => "com.universalconvert.fasterwhisper";
         public string Name => "FasterWhisper";
         public string Description => "语音转文字/字幕（音频 → txt/srt/vtt），Whisper base 模型随包分发";
-        public string Version => "1.0.0";
+        public string Version => "1.0.1";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
@@ -136,6 +136,9 @@ namespace UniversalConvert.Plugin.FasterWhisper
                 var name = Path.GetFileNameWithoutExtension(request.InputPath);
                 outputPath = Path.Combine(dir ?? "", name + outExt);
             }
+            // 目标已存在（或与输入同名）→ 改用 "name (1).ext" 递增并原子占位：
+            // 既不覆盖用户既有文件，也避免并发写同一路径
+            outputPath = OutputPathHelper.ReserveUniqueOutputPath(outputPath, request.InputPath);
 
             var tempWav = Path.Combine(Path.GetTempPath(), "uc-wav-" + Guid.NewGuid().ToString("N") + ".wav");
             try

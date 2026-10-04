@@ -24,7 +24,7 @@ namespace UniversalConvert.Plugin.Potrace
         public string Id => "com.universalconvert.potrace";
         public string Name => "Potrace";
         public string Description => "位图转矢量图（BMP/PBM → SVG/PDF/EPS/PS），工具由 CI 编译随包分发";
-        public string Version => "1.0.0";
+        public string Version => "1.0.1";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
@@ -123,6 +123,9 @@ namespace UniversalConvert.Plugin.Potrace
                 var name = Path.GetFileNameWithoutExtension(request.InputPath);
                 outputPath = Path.Combine(dir ?? "", name + outExt);
             }
+            // 目标已存在（或与输入同名）→ 改用 "name (1).ext" 递增并原子占位：
+            // 既不覆盖用户既有文件，也避免并发写同一路径
+            outputPath = OutputPathHelper.ReserveUniqueOutputPath(outputPath, request.InputPath);
 
             try
             {

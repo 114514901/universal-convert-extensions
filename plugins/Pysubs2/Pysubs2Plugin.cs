@@ -24,7 +24,7 @@ namespace UniversalConvert.Plugin.Pysubs2
         public string Id => "com.universalconvert.pysubs2";
         public string Name => "Pysubs2";
         public string Description => "字幕格式互转（srt/ass/ssa/vtt/sami/ttml 等），基于 pysubs2";
-        public string Version => "1.0.1";
+        public string Version => "1.0.2";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
@@ -143,6 +143,9 @@ namespace UniversalConvert.Plugin.Pysubs2
                 var name = Path.GetFileNameWithoutExtension(request.InputPath);
                 outputPath = Path.Combine(dir ?? "", name + outExt);
             }
+            // 目标已存在（或与输入同名）→ 改用 "name (1).ext" 递增并原子占位：
+            // 既不覆盖用户既有文件，也避免并发写同一路径
+            outputPath = OutputPathHelper.ReserveUniqueOutputPath(outputPath, request.InputPath);
 
             // pysubs2 输出到 -o 目录、文件名=输入同名+新扩展，先转临时目录再搬
             var tempOut = Path.Combine(Path.GetTempPath(), "uc-subs-" + Guid.NewGuid().ToString("N"));

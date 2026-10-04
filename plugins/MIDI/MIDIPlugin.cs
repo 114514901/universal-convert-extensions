@@ -25,7 +25,7 @@ namespace UniversalConvert.Plugin.MIDI
         public string Id => "com.universalconvert.midi";
         public string Name => "MIDI";
         public string Description => "MIDI 合成与音频转换（.mid/.midi → wav/mp3/ogg/flac/m4a），FluidSynth + GeneralUser GS 音色库随包分发";
-        public string Version => "1.0.3";
+        public string Version => "1.0.4";
 
         /// <summary>需要 IPreviewProvider 与加载时 MinAppVersion 校验（主程序 2.0.2-dev.7 起）。</summary>
         public string MinAppVersion => "2.0.2-dev.7";
@@ -186,6 +186,9 @@ namespace UniversalConvert.Plugin.MIDI
                     var name = Path.GetFileNameWithoutExtension(request.InputPath);
                     outputPath = Path.Combine(dir ?? "", name + outExt);
                 }
+                // 目标已存在（或与输入同名）→ 改用 "name (1).ext" 递增并原子占位：
+                // 既不覆盖用户既有文件，也避免并发写同一路径
+                outputPath = OutputPathHelper.ReserveUniqueOutputPath(outputPath, request.InputPath);
 
                 // 3. wav 直接给；其它格式链式 ffmpeg 转码
                 if (string.Equals(outExt, ".wav", StringComparison.OrdinalIgnoreCase))

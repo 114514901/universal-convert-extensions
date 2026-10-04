@@ -27,7 +27,7 @@ namespace UniversalConvert.Plugin.LibreOffice
         public string Id => "com.universalconvert.libreoffice";
         public string Name => "LibreOffice";
         public string Description => "Office 文档渲染转换（doc/docx/xls/xlsx/ppt/pptx → PDF 等），LibreOffice 完整版随包分发（约 400MB）";
-        public string Version => "1.0.1";
+        public string Version => "1.0.2";
         public string MinAppVersion => "1.7.3";
         public string MaxAppVersion => null;
         public bool IsUntested => false;
@@ -132,6 +132,9 @@ namespace UniversalConvert.Plugin.LibreOffice
                 var name = Path.GetFileNameWithoutExtension(request.InputPath);
                 outputPath = Path.Combine(dir ?? "", name + outExt);
             }
+            // 目标已存在（或与输入同名）→ 改用 "name (1).ext" 递增并原子占位：
+            // 既不覆盖用户既有文件，也避免并发写同一路径
+            outputPath = OutputPathHelper.ReserveUniqueOutputPath(outputPath, request.InputPath);
 
             // soffice --convert-to 输出到 --outdir、文件名=输入同名+目标扩展，故先渲染到临时目录再搬
             var tempOut = Path.Combine(Path.GetTempPath(), "uc-lo-" + Guid.NewGuid().ToString("N"));
